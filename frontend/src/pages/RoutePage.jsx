@@ -7,7 +7,7 @@ export default function RoutePage(){
   const [index,setIndex] = useState(0)
 
   useEffect(()=>{
-    fetch("http://127.0.0.1:5000/route")
+    fetch("http://10.87.126.207:5000/route")
       .then(r=>r.json())
       .then(setRoute)
   },[])

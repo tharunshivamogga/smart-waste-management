@@ -14,20 +14,30 @@ export default function MapPage(){
   const [bins,setBins] = useState([])
   const [route,setRoute] = useState([])
   const [selected,setSelected] = useState(null)
-
+  const [progress, setProgress] = useState(1)
   const [binId,setBinId] = useState("")
   const [waste,setWaste] = useState("")
 
   useEffect(()=>{
-    fetch("http://127.0.0.1:5000/bins")
+    fetch("http://10.87.126.207:5000/bins")
       .then(r=>r.json())
       .then(setBins)
 
-    fetch("http://127.0.0.1:5000/route")
+    fetch("http://10.87.126.207:5000/route")
       .then(r=>r.json())
       .then(setRoute)
   },[])
 
+  useEffect(() => {
+  let i = 1
+  const interval = setInterval(() => {
+    i++
+    setProgress(i)
+    if (i >= route.length) clearInterval(interval)
+  }, 500)
+
+  return () => clearInterval(interval)
+}, [route])
   const coords = route.map(r=>[r.Latitude,r.Longitude])
 
   return(
@@ -48,7 +58,7 @@ export default function MapPage(){
         />
 
         <button onClick={()=>{
-          fetch("http://127.0.0.1:5000/update",{
+          fetch("http://10.87.126.207:5000/update",{
             method:"POST",
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({
@@ -93,8 +103,10 @@ export default function MapPage(){
         )}
 
         {/* 🚛 ROUTE */}
-        <Polyline positions={coords} color="blue"/>
-
+        <Polyline
+  positions={route.slice(0, progress).map(r => [r.Latitude, r.Longitude])}
+  color="blue"
+/>
       </MapContainer>
 
     </div>

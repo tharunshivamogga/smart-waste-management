@@ -8,11 +8,11 @@ export default function Layout({ children }) {
         <h2>🚀 Smart Waste</h2>
 
         <Link to="/">Dashboard</Link>
-        <Link to="/map">Heatmap</Link>
-        <Link to="/route">Truck Route</Link>
+        <Link to="/map">Map</Link>
+        <Link to="/route">Route</Link>
       </div>
 
-      <div className="main">
+      <div className="content">
         {children}
       </div>
 

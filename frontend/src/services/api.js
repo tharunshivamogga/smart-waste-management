@@ -1,9 +1,24 @@
+const BASE_URL = "https://smart-waste-management.onrender.com"
 
-import axios from "axios"
-const BASE_URL = "https://your-backend-url.onrender.com"
+export const getBins = async () => {
+  const res = await fetch(`${BASE_URL}/bins`)
+  return await res.json()
+}
 
-export const getStats=()=>axios.get(API+"/stats")
-export const getBins=()=>axios.get(API+"/bins")
-export const getAnalytics=()=>axios.get(API+"/analytics")
-export const getRoute=()=>axios.get(API+"/route")
-export const updateBin=(data)=>axios.post(API+"/update_bin",data)
+export const getRoute = async () => {
+  const res = await fetch(`${BASE_URL}/route`)
+  return await res.json()
+}
+
+export const getAnalytics = async () => {
+  const res = await fetch(`${BASE_URL}/analytics`)
+  return await res.json()
+}
+
+export const updateBin = async (data) => {
+  await fetch(`${BASE_URL}/update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+}

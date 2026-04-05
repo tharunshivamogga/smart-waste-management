@@ -14,7 +14,7 @@ def home():
 
 # ✅ FILE PATH (SAFE)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(BASE_DIR, "..", "dataset", "bins.csv")
+DATA = os.path.join(BASE_DIR, "dataset", "bins.csv")
 
 print("DATA PATH:", DATA)
 

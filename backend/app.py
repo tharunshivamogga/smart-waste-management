@@ -3,7 +3,7 @@ from flask_cors import CORS
 import pandas as pd
 import math
 import os
-
+from ml_model import predict_waste
 app = Flask(__name__)
 CORS(app)
 
@@ -83,35 +83,39 @@ def update_bin():
     save(df)
 
     return jsonify({"status": "updated"})
+@app.route("/prediction")
+def prediction():
+    df = load()
+    preds = predict_waste(df)
+    return jsonify(preds)
 
 # ✅ ROUTE OPTIMIZATION
-@app.route("/route")
-def route():
-    df = load()
+@app.route("/ai_routes")
+def ai_routes():
+    df = load().sort_values("Waste_Level", ascending=False)
 
-    if df.empty or "Waste_Level" not in df.columns:
-        return jsonify([])
+    # Split bins for 3 trucks
+    trucks = {
+        "truck1": df.iloc[0:5],
+        "truck2": df.iloc[5:10],
+        "truck3": df.iloc[10:15]
+    }
 
-    df = df.sort_values("Waste_Level", ascending=False).head(10)
+    result = {}
 
-    points = df[["Latitude", "Longitude"]].values.tolist()
+    for t, data in trucks.items():
+        route = data[["Latitude", "Longitude"]].values.tolist()
 
-    if not points:
-        return jsonify([])
+        # simple nearest route
+        path = [route.pop(0)]
+        while route:
+            last = path[-1]
+            nearest = min(route, key=lambda p: math.dist(last, p))
+            path.append(nearest)
+            route.remove(nearest)
 
-    route = [points.pop(0)]
-
-    while points:
-        last = route[-1]
-        nearest = min(points, key=lambda p: math.dist(last, p))
-        route.append(nearest)
-        points.remove(nearest)
-
-    result = []
-    for r in route:
-        row = df[(df["Latitude"] == r[0]) & (df["Longitude"] == r[1])]
-
-        if not row.empty:
-            result.append(row.iloc[0].to_dict())
+        result[t] = path
 
     return jsonify(result)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)

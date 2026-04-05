@@ -1,29 +1,33 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { useState } from "react"
 
-import Layout from "./components/Layout.jsx"
-import Dashboard from "./pages/Dashboard.jsx"
-import MapPage from "./pages/MapPage.jsx"
-import RoutePage from "./pages/RoutePage.jsx"
-import Login from "./pages/Login.jsx"
+import Layout from "./components/Layout"
+import Dashboard from "./pages/Dashboard"
+import MapPage from "./pages/MapPage"
+import RoutePage from "./pages/RoutePage"
+import Login from "./pages/Login"
 
-export default function App(){
+export default function App() {
 
-  const [auth, setAuth] = useState(false)
-  const [role, setRole] = useState("")
+  const [auth, setAuth] = useState(localStorage.getItem("auth") === "true")
+  const [role, setRole] = useState(localStorage.getItem("role"))
 
-  // 🔐 LOGIN SCREEN
-  if(!auth){
-    return <Login setAuth={setAuth} setRole={setRole}/>
-  }
+  if (!auth) return <Login setAuth={setAuth} setRole={setRole} />
 
-  return(
+  return (
     <BrowserRouter>
-      <Layout>
+      <Layout role={role}>
         <Routes>
-          {role === "admin" && <Route path="/" element={<Dashboard/>}/>}
-          <Route path="/map" element={<MapPage/>}/>
+
+          {role === "admin" && (
+            <>
+              <Route path="/" element={<Dashboard/>}/>
+              <Route path="/map" element={<MapPage/>}/>
+            </>
+          )}
+
           <Route path="/route" element={<RoutePage/>}/>
+
         </Routes>
       </Layout>
     </BrowserRouter>

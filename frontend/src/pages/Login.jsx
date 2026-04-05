@@ -7,15 +7,19 @@ export default function Login({ setAuth, setRole }) {
 
   function login() {
 
-    if(user === "admin" && pass === "admin"){
+    if (user === "admin" && pass === "1234") {
+      setAuth(true)
       setRole("admin")
-      setAuth(true)
+      localStorage.setItem("role", "admin")
     }
-    else if(user === "driver" && pass === "driver"){
+
+    else if (user === "driver" && pass === "1234") {
+      setAuth(true)
       setRole("driver")
-      setAuth(true)
+      localStorage.setItem("role", "driver")
     }
-    else{
+
+    else {
       alert("Invalid credentials")
     }
   }
@@ -24,8 +28,8 @@ export default function Login({ setAuth, setRole }) {
     <div className="login">
       <h2>🔐 Smart Waste Login</h2>
 
-      <input onChange={e=>setUser(e.target.value)} placeholder="Username"/>
-      <input onChange={e=>setPass(e.target.value)} placeholder="Password" type="password"/>
+      <input placeholder="Username" onChange={e=>setUser(e.target.value)}/>
+      <input type="password" placeholder="Password" onChange={e=>setPass(e.target.value)}/>
 
       <button onClick={login}>Login</button>
     </div>

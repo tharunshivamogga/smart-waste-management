@@ -4,11 +4,10 @@
 // export const updateBinRealtime = (bin) => {
 //   set(ref(db, "bins/" + bin.Bin_ID), bin)
 // }
-const LOCAL = "http://localhost:5000"
-const RENDER = "https://smart-waste-management-awpg.onrender.com"
-
 const BASE =
-  window.location.hostname === "localhost" ? LOCAL : RENDER
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:5000"
+    : "https://smart-waste-management-awpg.onrender.com"
 
 export const getBins = async () => {
   const r = await fetch(`${BASE}/bins`)

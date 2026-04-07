@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import pandas as pd
+import numpy as np
 import math
 import os
 from ml_model import predict_waste
@@ -65,23 +66,29 @@ def prediction():
     if df.empty:
         return jsonify([])
 
-    ml_values = predict_waste(df)
+    try:
+        ml_values = predict_waste(df)
+    except:
+        ml_values = [row["Waste_Level"] for _, row in df.iterrows()]
 
     result = []
 
     for i, row in df.iterrows():
-    
-        # 🔥 AI prediction (simple logic)
+
+        # AI prediction
         ai = min(100, row["Waste_Level"] + 15)
 
-        # 🔥 ML prediction (model output)
-        ml = float(ml_values[i]) if i < len(ml_values) else row["Waste_Level"]
+        # ML prediction SAFE
+        try:
+            ml = float(ml_values[i])
+        except:
+            ml = row["Waste_Level"]
 
         result.append({
-            "Area": row["Area"],
-            "actual": row["Waste_Level"],
-            "ai_predicted": ai,
-            "ml_predicted": ml
+            "Area": str(row["Area"]),
+            "actual": float(row["Waste_Level"]),
+            "ai_predicted": float(ai),
+            "ml_predicted": float(ml)
         })
 
     return jsonify(result)

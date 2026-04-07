@@ -1,19 +1,65 @@
-import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.cluster import KMeans
 
+# 🔥 ML PREDICTION FUNCTION (REQUIRED)
 def predict_waste(df):
 
-    df = df.copy()
-    df["index"] = range(len(df))
+    waste = df["Waste_Level"].values
 
-    X = df[["index"]]
-    y = df["Waste_Level"]
+    # normalize
+    norm = waste / 100
 
-    model = LinearRegression()
-    model.fit(X, y)
+    # growth logic
+    growth = 0.1 + (norm * 0.5)
 
-    future_index = np.array([[len(df)+i] for i in range(5)])
-    predictions = model.predict(future_index)
+    predicted = waste + (waste * growth)
 
-    return [round(p,2) for p in predictions]
+    # add variation
+    noise = np.random.uniform(-5, 10, size=len(predicted))
+    predicted = predicted + noise
+
+    # clamp
+    predicted = np.clip(predicted, 0, 100)
+
+    return predicted.tolist()
+
+
+# 🔥 CLUSTERING FUNCTION (FOR ANALYSIS)
+def analyze_bins(df):
+
+    waste = df["Waste_Level"].values.reshape(-1, 1)
+
+    kmeans = KMeans(n_clusters=3, random_state=0)
+    labels = kmeans.fit_predict(waste)
+
+    result = []
+
+    for i, row in df.iterrows():
+
+        level = row["Waste_Level"]
+
+        # usage pattern
+        if level > 80:
+            usage = "High Usage"
+        elif level > 50:
+            usage = "Medium Usage"
+        else:
+            usage = "Low Usage"
+
+        # cluster meaning
+        if labels[i] == 0:
+            group = "Low Priority"
+        elif labels[i] == 1:
+            group = "Medium Priority"
+        else:
+            group = "High Priority"
+
+        result.append({
+            "Bin_ID": row["Bin_ID"],
+            "Area": row["Area"],
+            "Waste_Level": level,
+            "usage_pattern": usage,
+            "cluster": group
+        })
+
+    return result

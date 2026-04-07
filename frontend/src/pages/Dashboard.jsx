@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react"
 import { getBins, getPrediction, getAnalysis } from "../services/api"
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell
-} from "recharts"
 
 export default function Dashboard() {
 
@@ -12,36 +8,11 @@ export default function Dashboard() {
   const [analysis, setAnalysis] = useState([])
 
   useEffect(() => {
-    load()
-  }, [])
-
-  function load() {
     getBins().then(res => setBins(res.data || []))
     getPrediction().then(res => setPred(res.data || []))
     getAnalysis().then(res => setAnalysis(res.data || []))
-  }
+  }, [])
 
-  function notify(msg) {
-    if (Notification.permission === "granted") {
-      new Notification(msg)
-    } else {
-      Notification.requestPermission()
-    }
-  }
-
-  const pieData = [
-    { name: "Low", value: bins.filter(b => b.Waste_Level < 50).length },
-    { name: "Medium", value: bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length },
-    { name: "High", value: bins.filter(b => b.Waste_Level > 80).length }
-  ]
- const safePred = Array.isArray(pred)
-  ? pred.map(p => ({
-      Area: String(p?.Area || ""),
-      actual: Number(p?.actual || 0),
-      ai_predicted: Number(p?.ai_predicted || 0),
-      ml_predicted: Number(p?.ml_predicted || 0)
-    }))
-  : []
   return (
     <div className="page">
 
@@ -62,62 +33,33 @@ export default function Dashboard() {
 
       {/* Alerts */}
       <h3>🚨 Alerts</h3>
-      {bins.filter(b => b.Waste_Level > 80).map(b => (
-        <div key={b.Bin_ID} className="alert">
+      {bins.map(b => (
+        <div key={b.Bin_ID}>
           {b.Area} - {b.Waste_Level}%
         </div>
       ))}
 
-      {/* 🧠 Bin Analysis (FIXED POSITION) */}
-      <h3>🧠 Bin Analysis</h3>
-     {Array.isArray(analysis) && analysis.map(b => (
-        <div key={b.Bin_ID} className="alert">
-          {b.Area} | {b.usage_pattern} | {b.cluster}
-        </div>
-      ))}
-
-      {/* AI Prediction */}
-{/*       
-      <h3>📈 AI Prediction</h3>
- {safePred.length > 0 && (
-  <LineChart width={700} height={300} data={safePred}>
-    <XAxis dataKey="Area" />
-    <YAxis />
-    <Tooltip />
-    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
-    <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
-  </LineChart>
-)}
-  {safePred.length > 0 && (
-  <LineChart width={700} height={300} data={safePred}>
-    <XAxis dataKey="Area" />
-    <YAxis />
-    <Tooltip />
-    <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
-  </LineChart>
-)} */}
-  <h3>📈 AI Prediction</h3>
-<pre style={{ background: "#111", padding: "10px" }}>
-  {JSON.stringify(pred, null, 2)}
-</pre>
-
-<h3>📊 ML Prediction</h3>
-<pre style={{ background: "#111", padding: "10px" }}>
-  {JSON.stringify(pred, null, 2)}
-</pre>
-
-      {/* Pie Chart */}
-      <h3>🧩 Waste Distribution</h3>
-      <PieChart width={300} height={300}>
-        <Pie data={pieData} dataKey="value" outerRadius={100} label>
-          {pieData.map((_, i) => (
-            <Cell key={i} fill={["#22c55e", "#facc15", "#ef4444"][i]} />
+      {/* SAFE OUTPUT (NO CRASH) */}
+      <h3>📈 Prediction Data</h3>
+      <div style={{ background: "#111", padding: "10px" }}>
+        {Array.isArray(pred) &&
+          pred.map((p, i) => (
+            <div key={i}>
+              {p.Area} | {p.actual} | {p.ai_predicted} | {p.ml_predicted}
+            </div>
           ))}
-        </Pie>
-      </PieChart>
+      </div>
+
+      <h3>🧠 Analysis</h3>
+      <div style={{ background: "#111", padding: "10px" }}>
+        {Array.isArray(analysis) &&
+          analysis.map((a, i) => (
+            <div key={i}>
+              {a.Area} | {a.usage_pattern} | {a.cluster}
+            </div>
+          ))}
+      </div>
 
     </div>
   )
 }
-console.log("PRED RAW:", pred)
-console.log("SAFE:", safePred)

@@ -34,15 +34,16 @@ export default function Dashboard() {
     { name: "Medium", value: bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length },
     { name: "High", value: bins.filter(b => b.Waste_Level > 80).length }
   ]
-  const safePred = Array.isArray(pred)
-  ? pred.filter(p =>
-      p &&
-      typeof p === "object" &&
-      "Area" in p &&
-      "actual" in p &&
-      "ai_predicted" in p &&
-      "ml_predicted" in p
-    )
+ const safePred = Array.isArray(pred)
+  ? pred
+      .filter(p =>
+        p &&
+        typeof p === "object" &&
+        typeof p.Area === "string" &&
+        typeof p.actual === "number" &&
+        typeof p.ai_predicted === "number" &&
+        typeof p.ml_predicted === "number"
+      )
   : []
   return (
     <div className="page">
@@ -81,11 +82,11 @@ export default function Dashboard() {
       {/* AI Prediction */}
       
       <h3>📈 AI Prediction</h3>
-  {safePred.length > 0 ? (
+ {safePred.length > 0 ? (
   <LineChart width={700} height={300} data={safePred}>
     <XAxis dataKey="Area" />
     <YAxis />
-    <Tooltip />
+    <Tooltip formatter={(value) => Number(value).toFixed(1)} />
     <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
     <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
   </LineChart>

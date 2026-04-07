@@ -71,27 +71,30 @@ export default function Dashboard() {
 
       {/* AI Prediction */}
       <h3>📈 AI Prediction</h3>
-      {pred.length === 0 ? <p>Loading...</p> : (
-        <LineChart width={700} height={300} data={pred}>
-          <XAxis dataKey="Area" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
-          <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
-        </LineChart>
-      )}
-
+    {Array.isArray(pred) && pred.length > 0 ? (
+  <LineChart width={700} height={300} data={pred}>
+    <XAxis dataKey="Area" />
+    <YAxis />
+    <Tooltip />
+    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+    <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
+  </LineChart>
+) : (
+  <p>Loading...</p>
+)}
       {/* ML Prediction */}
       <h3>📊 ML Prediction</h3>
-      {pred.length === 0 ? <p>Loading...</p> : (
-        <LineChart width={700} height={300} data={pred}>
-          <XAxis dataKey="Area" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
-          <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
-        </LineChart>
-      )}
+   {Array.isArray(pred) && pred.length > 0 ? (
+  <LineChart width={700} height={300} data={pred}>
+    <XAxis dataKey="Area" />
+    <YAxis />
+    <Tooltip />
+    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+    <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
+  </LineChart>
+) : (
+  <p>Loading...</p>
+)}
 
       {/* Pie Chart */}
       <h3>🧩 Waste Distribution</h3>

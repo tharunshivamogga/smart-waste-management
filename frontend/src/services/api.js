@@ -17,8 +17,13 @@ export const updateBin = async (data) => {
 }
 
 export const getPrediction = async () => {
-  const r = await fetch(`${BASE}/prediction`)
-  return { data: await r.json() }
+  try {
+    const r = await fetch(`${BASE}/prediction`)
+    const data = await r.json()
+    return { data: Array.isArray(data) ? data : [] }
+  } catch (e) {
+    return { data: [] }
+  }
 }
 
 export const getAnalysis = async () => {

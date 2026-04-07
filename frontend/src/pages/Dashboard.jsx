@@ -34,7 +34,16 @@ export default function Dashboard() {
     { name: "Medium", value: bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length },
     { name: "High", value: bins.filter(b => b.Waste_Level > 80).length }
   ]
-
+  const safePred = Array.isArray(pred)
+  ? pred.filter(p =>
+      p &&
+      typeof p === "object" &&
+      "Area" in p &&
+      "actual" in p &&
+      "ai_predicted" in p &&
+      "ml_predicted" in p
+    )
+  : []
   return (
     <div className="page">
 
@@ -63,16 +72,17 @@ export default function Dashboard() {
 
       {/* 🧠 Bin Analysis (FIXED POSITION) */}
       <h3>🧠 Bin Analysis</h3>
-      {analysis.map(b => (
+     {Array.isArray(analysis) && analysis.map(b => (
         <div key={b.Bin_ID} className="alert">
           {b.Area} | {b.usage_pattern} | {b.cluster}
         </div>
       ))}
 
       {/* AI Prediction */}
+      
       <h3>📈 AI Prediction</h3>
-  {Array.isArray(pred) && pred.length > 0 && pred.every(p => p && p.Area) ? (
-  <LineChart width={700} height={300} data={pred}>
+  {safePred.length > 0 ? (
+  <LineChart width={700} height={300} data={safePred}>
     <XAxis dataKey="Area" />
     <YAxis />
     <Tooltip />
@@ -80,10 +90,10 @@ export default function Dashboard() {
     <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
   </LineChart>
 ) : (
-  <p>Waiting for backend...</p>
+  <p>Loading...</p>
 )}
-    {Array.isArray(pred) && pred.length > 0 && pred.every(p => p && p.Area) ? (
-  <LineChart width={700} height={300} data={pred}>
+   {safePred.length > 0 ? (
+  <LineChart width={700} height={300} data={safePred}>
     <XAxis dataKey="Area" />
     <YAxis />
     <Tooltip />
@@ -91,7 +101,7 @@ export default function Dashboard() {
     <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
   </LineChart>
 ) : (
-  <p>Waiting for backend...</p>
+  <p>Loading...</p>
 )}
 
       {/* Pie Chart */}

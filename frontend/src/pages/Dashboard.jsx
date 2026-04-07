@@ -71,7 +71,7 @@ export default function Dashboard() {
 
       {/* AI Prediction */}
       <h3>📈 AI Prediction</h3>
-    {Array.isArray(pred) && pred.length > 0 ? (
+  {Array.isArray(pred) && pred.length > 0 && pred.every(p => p && p.Area) ? (
   <LineChart width={700} height={300} data={pred}>
     <XAxis dataKey="Area" />
     <YAxis />
@@ -80,11 +80,9 @@ export default function Dashboard() {
     <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
   </LineChart>
 ) : (
-  <p>Loading...</p>
+  <p>Waiting for backend...</p>
 )}
-      {/* ML Prediction */}
-      <h3>📊 ML Prediction</h3>
-   {Array.isArray(pred) && pred.length > 0 ? (
+    {Array.isArray(pred) && pred.length > 0 && pred.every(p => p && p.Area) ? (
   <LineChart width={700} height={300} data={pred}>
     <XAxis dataKey="Area" />
     <YAxis />
@@ -93,7 +91,7 @@ export default function Dashboard() {
     <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
   </LineChart>
 ) : (
-  <p>Loading...</p>
+  <p>Waiting for backend...</p>
 )}
 
       {/* Pie Chart */}

@@ -20,12 +20,15 @@ export const getPrediction = async () => {
   try {
     const r = await fetch(`${BASE}/prediction`)
     const data = await r.json()
-    return { data: Array.isArray(data) ? data : [] }
+
+    if (!Array.isArray(data)) return { data: [] }
+
+    return { data }
   } catch (e) {
+    console.error("Prediction error:", e)
     return { data: [] }
   }
 }
-
 export const getAnalysis = async () => {
   const r = await fetch(`${BASE}/analysis`)
   return { data: await r.json() }

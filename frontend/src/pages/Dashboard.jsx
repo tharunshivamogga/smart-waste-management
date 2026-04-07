@@ -1,39 +1,26 @@
 import { useEffect, useState } from "react"
-import { getBins, getPrediction } from "../services/api"
+import { getBins, getPrediction, getAnalysis } from "../services/api"
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell
 } from "recharts"
-import { getAnalysis } from "../services/api"
+
 export default function Dashboard() {
 
   const [bins, setBins] = useState([])
   const [pred, setPred] = useState([])
-const [analysis, setAnalysis] = useState([])
+  const [analysis, setAnalysis] = useState([])
+
   useEffect(() => {
     load()
   }, [])
 
   function load() {
-    getBins().then(res => {
-      setBins(res.data || [])
-    })
-
-    getPrediction().then(res => {
-      setPred(res.data || [])
-    })
-
-    getAnalysis().then(res => {
-      setAnalysis(res.data || [])
-    })
+    getBins().then(res => setBins(res.data || []))
+    getPrediction().then(res => setPred(res.data || []))
+    getAnalysis().then(res => setAnalysis(res.data || []))
   }
-  <h3>🧠 Bin Analysis</h3>
 
-{analysis.map(b => (
-  <div key={b.Bin_ID} className="alert">
-    {b.Area} | {b.usage_pattern} | {b.cluster}
-  </div>
-))}
   function notify(msg) {
     if (Notification.permission === "granted") {
       new Notification(msg)
@@ -42,7 +29,6 @@ const [analysis, setAnalysis] = useState([])
     }
   }
 
-  // 🔥 Pie Data
   const pieData = [
     { name: "Low", value: bins.filter(b => b.Waste_Level < 50).length },
     { name: "Medium", value: bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length },
@@ -75,33 +61,40 @@ const [analysis, setAnalysis] = useState([])
         </div>
       ))}
 
+      {/* 🧠 Bin Analysis (FIXED POSITION) */}
+      <h3>🧠 Bin Analysis</h3>
+      {analysis.map(b => (
+        <div key={b.Bin_ID} className="alert">
+          {b.Area} | {b.usage_pattern} | {b.cluster}
+        </div>
+      ))}
+
+      {/* AI Prediction */}
+      <h3>📈 AI Prediction</h3>
+      {pred.length === 0 ? <p>Loading...</p> : (
+        <LineChart width={700} height={300} data={pred}>
+          <XAxis dataKey="Area" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+          <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
+        </LineChart>
+      )}
+
       {/* ML Prediction */}
-<h3>📈 AI Prediction</h3>
+      <h3>📊 ML Prediction</h3>
+      {pred.length === 0 ? <p>Loading...</p> : (
+        <LineChart width={700} height={300} data={pred}>
+          <XAxis dataKey="Area" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+          <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
+        </LineChart>
+      )}
 
-{pred.length === 0 ? <p>Loading...</p> : (
-  <LineChart width={700} height={300} data={pred}>
-    <XAxis dataKey="Area" />
-    <YAxis />
-    <Tooltip />
-    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
-    <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
-  </LineChart>
-)}
-
-<h3>📊 ML Prediction</h3>
-
-{pred.length === 0 ? <p>Loading...</p> : (
-  <LineChart width={700} height={300} data={pred}>
-    <XAxis dataKey="Area" />
-    <YAxis />
-    <Tooltip />
-    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
-    <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
-  </LineChart>
-)}
       {/* Pie Chart */}
       <h3>🧩 Waste Distribution</h3>
-
       <PieChart width={300} height={300}>
         <Pie data={pieData} dataKey="value" outerRadius={100} label>
           {pieData.map((_, i) => (

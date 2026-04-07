@@ -75,7 +75,7 @@ def prediction():
         ai = min(100, row["Waste_Level"] + 15)
 
         # 🔥 ML prediction (model output)
-        ml = float(ml_values[i])
+        ml = float(ml_values[i]) if i < len(ml_values) else row["Waste_Level"]
 
         result.append({
             "Area": row["Area"],

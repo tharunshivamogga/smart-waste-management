@@ -1,7 +1,7 @@
 const BASE =
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:5000"
-    : "https://smart-waste-management-awpg.onrender.com"
+    : "https://smart-waste-management-awpg.onrender.com" // 🔥 YOUR RENDER URL
 
 export const getBins = async () => {
   const r = await fetch(`${BASE}/bins`)

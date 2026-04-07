@@ -77,7 +77,7 @@ export default function Dashboard() {
       ))}
 
       {/* AI Prediction */}
-      
+{/*       
       <h3>📈 AI Prediction</h3>
  {safePred.length > 0 && (
   <LineChart width={700} height={300} data={safePred}>
@@ -95,7 +95,16 @@ export default function Dashboard() {
     <Tooltip />
     <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
   </LineChart>
-)}
+)} */}
+  <h3>📈 AI Prediction</h3>
+<pre style={{ background: "#111", padding: "10px" }}>
+  {JSON.stringify(pred, null, 2)}
+</pre>
+
+<h3>📊 ML Prediction</h3>
+<pre style={{ background: "#111", padding: "10px" }}>
+  {JSON.stringify(pred, null, 2)}
+</pre>
 
       {/* Pie Chart */}
       <h3>🧩 Waste Distribution</h3>

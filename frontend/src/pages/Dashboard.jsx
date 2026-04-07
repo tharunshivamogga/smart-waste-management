@@ -35,15 +35,12 @@ export default function Dashboard() {
     { name: "High", value: bins.filter(b => b.Waste_Level > 80).length }
   ]
  const safePred = Array.isArray(pred)
-  ? pred
-      .filter(p =>
-        p &&
-        typeof p === "object" &&
-        typeof p.Area === "string" &&
-        typeof p.actual === "number" &&
-        typeof p.ai_predicted === "number" &&
-        typeof p.ml_predicted === "number"
-      )
+  ? pred.map(p => ({
+      Area: String(p?.Area || ""),
+      actual: Number(p?.actual || 0),
+      ai_predicted: Number(p?.ai_predicted || 0),
+      ml_predicted: Number(p?.ml_predicted || 0)
+    }))
   : []
   return (
     <div className="page">
@@ -82,27 +79,22 @@ export default function Dashboard() {
       {/* AI Prediction */}
       
       <h3>📈 AI Prediction</h3>
- {safePred.length > 0 ? (
-  <LineChart width={700} height={300} data={safePred}>
-    <XAxis dataKey="Area" />
-    <YAxis />
-    <Tooltip formatter={(value) => Number(value).toFixed(1)} />
-    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
-    <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
-  </LineChart>
-) : (
-  <p>Loading...</p>
-)}
-   {safePred.length > 0 ? (
+ {safePred.length > 0 && (
   <LineChart width={700} height={300} data={safePred}>
     <XAxis dataKey="Area" />
     <YAxis />
     <Tooltip />
     <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+    <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
+  </LineChart>
+)}
+  {safePred.length > 0 && (
+  <LineChart width={700} height={300} data={safePred}>
+    <XAxis dataKey="Area" />
+    <YAxis />
+    <Tooltip />
     <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
   </LineChart>
-) : (
-  <p>Loading...</p>
 )}
 
       {/* Pie Chart */}
@@ -118,3 +110,5 @@ export default function Dashboard() {
     </div>
   )
 }
+console.log("PRED RAW:", pred)
+console.log("SAFE:", safePred)

@@ -4,31 +4,36 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell
 } from "recharts"
-
+import { getAnalysis } from "../services/api"
 export default function Dashboard() {
 
   const [bins, setBins] = useState([])
   const [pred, setPred] = useState([])
-
+const [analysis, setAnalysis] = useState([])
   useEffect(() => {
     load()
   }, [])
 
   function load() {
-    getBins().then(data => {
-      setBins(data)
-
-      // 🔔 Notification
-      data.forEach(b => {
-        if (b.Waste_Level > 90) {
-          notify(`🚨 ${b.Area} overflow`)
-        }
-      })
+    getBins().then(res => {
+      setBins(res.data || [])
     })
 
-    getPrediction().then(setPred)
-  }
+    getPrediction().then(res => {
+      setPred(res.data || [])
+    })
 
+    getAnalysis().then(res => {
+      setAnalysis(res.data || [])
+    })
+  }
+  <h3>🧠 Bin Analysis</h3>
+
+{analysis.map(b => (
+  <div key={b.Bin_ID} className="alert">
+    {b.Area} | {b.usage_pattern} | {b.cluster}
+  </div>
+))}
   function notify(msg) {
     if (Notification.permission === "granted") {
       new Notification(msg)
@@ -37,10 +42,11 @@ export default function Dashboard() {
     }
   }
 
+  // 🔥 Pie Data
   const pieData = [
-    { name: "Low", value: bins.filter(b=>b.Waste_Level<40).length },
-    { name: "Medium", value: bins.filter(b=>b.Waste_Level>=40 && b.Waste_Level<80).length },
-    { name: "High", value: bins.filter(b=>b.Waste_Level>=80).length }
+    { name: "Low", value: bins.filter(b => b.Waste_Level < 50).length },
+    { name: "Medium", value: bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length },
+    { name: "High", value: bins.filter(b => b.Waste_Level > 80).length }
   ]
 
   return (
@@ -57,34 +63,50 @@ export default function Dashboard() {
 
         <div className="card">
           Overflow
-          <h2>{bins.filter(b=>b.Waste_Level>80).length}</h2>
+          <h2>{bins.filter(b => b.Waste_Level > 80).length}</h2>
         </div>
       </div>
 
       {/* Alerts */}
       <h3>🚨 Alerts</h3>
-      {bins.filter(b=>b.Waste_Level>80).map(b=>(
+      {bins.filter(b => b.Waste_Level > 80).map(b => (
         <div key={b.Bin_ID} className="alert">
           {b.Area} - {b.Waste_Level}%
         </div>
       ))}
 
-      {/* Line Chart */}
-      <h3>📈 ML Prediction</h3>
-      <LineChart width={500} height={300} data={pred.map((p,i)=>({i,p}))}>
-        <XAxis dataKey="i"/>
-        <YAxis/>
-        <Tooltip/>
-        <Line dataKey="p" stroke="#38bdf8"/>
-      </LineChart>
+      {/* ML Prediction */}
+<h3>📈 AI Prediction</h3>
 
+{pred.length === 0 ? <p>Loading...</p> : (
+  <LineChart width={700} height={300} data={pred}>
+    <XAxis dataKey="Area" />
+    <YAxis />
+    <Tooltip />
+    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+    <Line type="monotone" dataKey="ai_predicted" stroke="#facc15" />
+  </LineChart>
+)}
+
+<h3>📊 ML Prediction</h3>
+
+{pred.length === 0 ? <p>Loading...</p> : (
+  <LineChart width={700} height={300} data={pred}>
+    <XAxis dataKey="Area" />
+    <YAxis />
+    <Tooltip />
+    <Line type="monotone" dataKey="actual" stroke="#38bdf8" />
+    <Line type="monotone" dataKey="ml_predicted" stroke="#ef4444" />
+  </LineChart>
+)}
       {/* Pie Chart */}
-      <h3>📊 Waste Distribution</h3>
+      <h3>🧩 Waste Distribution</h3>
+
       <PieChart width={300} height={300}>
-        <Pie data={pieData} dataKey="value" outerRadius={100}>
-          <Cell fill="#22c55e"/>
-          <Cell fill="#facc15"/>
-          <Cell fill="#ef4444"/>
+        <Pie data={pieData} dataKey="value" outerRadius={100} label>
+          {pieData.map((_, i) => (
+            <Cell key={i} fill={["#22c55e", "#facc15", "#ef4444"][i]} />
+          ))}
         </Pie>
       </PieChart>
 

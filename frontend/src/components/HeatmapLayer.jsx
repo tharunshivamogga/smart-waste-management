@@ -1,40 +1,38 @@
-import { CircleMarker } from "react-leaflet"
+import { MapContainer, TileLayer, CircleMarker } from "react-leaflet"
+import { useEffect, useState } from "react"
+import { getBins } from "../services/api"
+import "leaflet/dist/leaflet.css"
+export default function MapPage() {
 
-export default function HeatmapLayer({ bins }) {
+  const [bins, setBins] = useState([])
 
-  if (!bins || bins.length === 0) return null
+  useEffect(() => {
+    getBins().then(res => setBins(res.data || []))
+  }, [])
 
   return (
-    <>
-      {bins.map(bin => {
+    <div className="page">
 
-        const lat = parseFloat(bin.Latitude)
-        const lng = parseFloat(bin.Longitude)
-        const waste = parseFloat(bin.Waste_Level)
+      <h2>🗺 Debug Map</h2>
 
-        // 🔥 Safety check
-        if (isNaN(lat) || isNaN(lng)) return null
+      <MapContainer
+        center={[12.97, 77.59]}
+        zoom={14}
+        style={{ height: "500px", width: "100%" }}  // 🔥 FORCE HEIGHT
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
 
-        return (
+        {bins.map(b => (
           <CircleMarker
-            key={bin.Bin_ID}
-            center={[lat, lng]}
-
-            // 🔥 Dynamic radius = heat intensity
-            radius={Math.max(10, waste / 3)}
-
-            pathOptions={{
-              fillColor:
-                waste > 80 ? "#ef4444" :     // 🔴 High
-                waste > 50 ? "#facc15" :     // 🟡 Medium
-                "#22c55e",                  // 🟢 Low
-
-              fillOpacity: 0.6,
-              color: "transparent"
-            }}
+            key={b.Bin_ID}
+            center={[b.Latitude, b.Longitude]}
+            radius={10}
+            pathOptions={{ color: "red", fillColor: "red", fillOpacity: 0.8 }}
           />
-        )
-      })}
-    </>
+        ))}
+
+      </MapContainer>
+
+    </div>
   )
 }

@@ -8,15 +8,19 @@ export default function Login({ setAuth, setRole }) {
   function login() {
 
     if (user === "admin" && pass === "1234") {
+      localStorage.setItem("auth", "true")
+      localStorage.setItem("role", "admin")
+
       setAuth(true)
       setRole("admin")
-      localStorage.setItem("role", "admin")
     }
 
     else if (user === "driver" && pass === "1234") {
+      localStorage.setItem("auth", "true")
+      localStorage.setItem("role", "driver")
+
       setAuth(true)
       setRole("driver")
-      localStorage.setItem("role", "driver")
     }
 
     else {

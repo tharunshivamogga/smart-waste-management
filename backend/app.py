@@ -136,6 +136,17 @@ def update_bin():
     save(df)
 
     return jsonify({"message": "Updated"})
+@app.route("/ai_route")
+def ai_route():
+    bins = load().to_dict(orient="records")
+
+    # sort by waste + slight randomness (AI feel)
+    sorted_bins = sorted(bins, key=lambda x: x["Waste_Level"], reverse=True)
+
+    # simulate smarter grouping (cluster-like)
+    result = sorted_bins[:7]
+
+    return jsonify(result)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

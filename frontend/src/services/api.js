@@ -33,3 +33,4 @@ export const getAnalysis = async () => {
   const r = await fetch(`${BASE}/analysis`)
   return { data: await r.json() }
 }
+export const getAIRoute = () => fetch(`${BASE}/ai_route`).then(res => res.json())

@@ -32,6 +32,7 @@ export default function MapPage() {
     })
   }
 
+  // 🎨 COLOR LOGIC
   function getColor(val) {
     if (val > 80) return "red"
     if (val > 50) return "orange"
@@ -42,12 +43,13 @@ export default function MapPage() {
   return (
     <div style={{ display: "flex", gap: "20px" }}>
 
-      {/* 🔥 LEFT PANEL */}
+      {/* 🔥 LEFT PANEL (ALL BINS) */}
       <div style={{
         width: "300px",
         maxHeight: "500px",
         overflowY: "auto",
-        background: "#1e293b",
+        background: "linear-gradient(145deg, #1e293b, #0f172a)",
+        boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
         padding: "10px",
         borderRadius: "10px"
       }}>
@@ -85,10 +87,10 @@ export default function MapPage() {
 
       {/* 🔥 RIGHT SIDE */}
       <div style={{ flex: 1 }}>
-
+        <div className="card">
         <h2>🗺 Waste Monitoring</h2>
 
-        {/* 🔧 Update */}
+        {/* 🔧 UPDATE FORM */}
         <div style={{ marginBottom: "10px" }}>
           <input
             placeholder="Bin ID"
@@ -117,38 +119,39 @@ export default function MapPage() {
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
 
           {bins.map(b => {
-            const isSelected = selectedBin === b.Bin_ID
+  const isSelected = selectedBin === b.Bin_ID
 
-            return (
-              <CircleMarker
-                key={b.Bin_ID}
-                center={[b.Latitude, b.Longitude]}
-                radius={
-                  isSelected
-                    ? 20
-                    : 10 + b.Waste_Level / 10
-                }
-                pathOptions={{
-                  color: isSelected ? "cyan" : getColor(b.Waste_Level),
-                  fillColor: getColor(b.Waste_Level),
-                  fillOpacity: 0.7,
-                  weight: isSelected ? 4 : 1
-                }}
-                eventHandlers={{
-                  click: () => {
-                    setBinId(b.Bin_ID)
-                    setWaste(b.Waste_Level)
-                    setSelectedBin(b.Bin_ID)
-                  }
-                }}
-              />
-            )
-          })}
+  let className = ""
+  if (b.Waste_Level > 80) className = "blink"
+  else if (b.Waste_Level > 50) className = "pulse"
+
+  return (
+    <CircleMarker
+      key={b.Bin_ID}
+      center={[Number(b.Latitude), Number(b.Longitude)]}
+      radius={isSelected ? 22 : 10 + b.Waste_Level / 10}
+      className={className}
+      pathOptions={{
+        color: isSelected ? "cyan" : getColor(b.Waste_Level),
+        fillColor: getColor(b.Waste_Level),
+        fillOpacity: 0.7,
+        weight: isSelected ? 4 : 1
+      }}
+      eventHandlers={{
+        click: () => {
+          setBinId(b.Bin_ID)
+          setWaste(b.Waste_Level)
+          setSelectedBin(b.Bin_ID)
+        }
+      }}
+    />
+  )
+})}
 
         </MapContainer>
-
+  
       </div>
-
+      </div>
     </div>
   )
 }

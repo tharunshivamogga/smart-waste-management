@@ -10,40 +10,40 @@ import Layout from "./components/Layout"
 export default function App() {
 
   const [role, setRole] = useState(localStorage.getItem("role"))
-
+const [auth, setAuth] = useState(localStorage.getItem("auth"))
   return (
     <BrowserRouter>
 
-      {!role ? (
-        <Login setRole={setRole} />
-      ) : (
-        <Routes>
+     {!role ? (
+  <Login setAuth={setAuth} setRole={setRole} />
+) : (
+       <Routes>
 
-          {/* ADMIN */}
-          {role === "admin" && (
-            <>
-              <Route path="/" element={<Layout role={role}><Dashboard /></Layout>} />
-              <Route path="/map" element={<Layout role={role}><MapPage /></Layout>} />
-              <Route path="/route" element={<Layout role={role}><RoutePage /></Layout>} />
-            </>
-          )}
+  {/* ADMIN */}
+  {role === "admin" && (
+    <>
+      <Route path="/" element={<Layout role={role}><Dashboard /></Layout>} />
+      <Route path="/map" element={<Layout role={role}><MapPage /></Layout>} />
+      <Route path="/route" element={<Layout role={role}><RoutePage /></Layout>} />
+    </>
+  )}
 
-          {/* DRIVER */}
-          {role === "driver" && (
-            <Route path="/route" element={<Layout role={role}><RoutePage /></Layout>} />
-          )}
+  {/* DRIVER */}
+  {role === "driver" && (
+    <Route path="/route" element={<Layout role={role}><RoutePage /></Layout>} />
+  )}
 
-          {/* DEFAULT */}
-          <Route
-            path="*"
-            element={
-              role === "admin"
-                ? <Navigate to="/" />
-                : <Navigate to="/route" />
-            }
-          />
+  {/* FALLBACK */}
+  <Route
+    path="*"
+    element={
+      role === "admin"
+        ? <Navigate to="/" replace />
+        : <Navigate to="/route" replace />
+    }
+  />
 
-        </Routes>
+</Routes>
       )}
 
     </BrowserRouter>

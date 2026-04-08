@@ -15,7 +15,7 @@ export default function Dashboard() {
       const binsRes = await getBins()
       const predRes = await getPrediction()
 
-      setBins(Array.isArray(binsRes.data) ? binsRes.data : [])
+      const safeBins = Array.isArray(binsRes.data) ? binsRes.data : []
 
       const safePred = Array.isArray(predRes.data)
         ? predRes.data.map(p => ({
@@ -26,6 +26,7 @@ export default function Dashboard() {
           }))
         : []
 
+      setBins(safeBins)
       setPred(safePred)
 
     } catch (e) {
@@ -44,18 +45,20 @@ export default function Dashboard() {
         <h1>🚀 Smart Waste Control Center</h1>
       </div>
 
+      {/* Stats */}
       <div className="cards">
         <div className="card">
-          Total Bins
+          <h3>Total Bins</h3>
           <h2>{bins.length}</h2>
         </div>
 
         <div className="card">
-          Overflow
+          <h3>Overflow</h3>
           <h2>{high}</h2>
         </div>
       </div>
 
+      {/* Alerts */}
       <h3>🚨 Alerts</h3>
       {bins.filter(b => b.Waste_Level > 80).map(b => (
         <div key={b.Bin_ID} className="alert">
@@ -63,44 +66,25 @@ export default function Dashboard() {
         </div>
       ))}
 
-      {/* SAFE CUSTOM CHART */}
+      {/* 🔥 SAFE RENDER ONLY */}
       <div className="card">
         <h3>📈 Predictions</h3>
 
+        {pred.length === 0 && <p>No data</p>}
+
         {pred.map((p, i) => (
-          <div key={i} style={{ marginBottom: "15px" }}>
-            <b>{String(p.Area)}</b>
+          <div key={i}>
+            <p>
+              <b>{String(p.Area)}</b>
+            </p>
 
-            <div style={{ display: "flex", gap: "5px", marginTop: "5px" }}>
+            <p>Actual: {p.actual}</p>
+            <p>AI: {p.ai}</p>
+            <p>ML: {p.ml}</p>
 
-              <div style={{
-                height: "10px",
-                width: `${p.actual}%`,
-                background: "#38bdf8"
-              }} />
-
-              <div style={{
-                height: "10px",
-                width: `${p.ai}%`,
-                background: "#facc15"
-              }} />
-
-              <div style={{
-                height: "10px",
-                width: `${p.ml}%`,
-                background: "#ef4444"
-              }} />
-
-            </div>
+            <hr />
           </div>
         ))}
-      </div>
-        <pre>{JSON.stringify(pred, null, 2)}</pre>
-      <div className="card">
-        <h3>🧩 Waste Distribution</h3>
-        <div>🟢 Low: {low}</div>
-        <div>🟡 Medium: {mid}</div>
-        <div>🔴 High: {high}</div>
       </div>
 
     </div>

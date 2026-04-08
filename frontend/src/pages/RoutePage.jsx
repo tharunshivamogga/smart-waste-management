@@ -121,7 +121,15 @@ export default function RoutePage() {
       .slice(0, 7)
 
     const ordered = optimizeRoute(topBins)
-    setSelected(ordered)
+    setSelected(
+  ordered.map(b => ({
+    Bin_ID: String(b.Bin_ID),
+    Area: String(b.Area || "Unknown"),
+    Latitude: Number(b.Latitude),
+    Longitude: Number(b.Longitude),
+    Waste_Level: Number(b.Waste_Level || 0)
+  }))
+)
 
     const path = [
       dumpYard,
@@ -144,7 +152,15 @@ export default function RoutePage() {
               Waste_Level: 0
             })
 
-            setVisited(prev => [...prev, ordered[i - 1]])
+            setVisited(prev => [
+  ...prev,
+  {
+    Bin_ID: String(ordered[i - 1].Bin_ID),
+    Area: String(ordered[i - 1].Area || "Unknown"),
+    Latitude: Number(ordered[i - 1].Latitude),
+    Longitude: Number(ordered[i - 1].Longitude)
+  }
+])
           }
 
           i++
@@ -202,7 +218,7 @@ export default function RoutePage() {
 
             {validBins.map(b => {
 
-              const nextBin = selected[visited.length]
+              const nextBin = selected[visited.length] || null
               const isNext = nextBin && b.Bin_ID === nextBin.Bin_ID
 
               return (

@@ -1,36 +1,71 @@
-const BASE =
-  window.location.hostname === "localhost"
-    ? "http://127.0.0.1:5000"
-    : "https://smart-waste-management-awpg.onrender.com" // 🔥 YOUR RENDER URL
+const BASE = "https://smart-waste-management-awpg.onrender.com"
 
-export const getBins = async () => {
-  const r = await fetch(`${BASE}/bins`)
-  return { data: await r.json() }
+// ✅ SAFE FETCH HELPER
+async function safeFetch(url, options = {}) {
+  try {
+    const res = await fetch(url, options)
+
+    // ❗ handle non-JSON (like 404 HTML page)
+    const text = await res.text()
+
+    try {
+      const data = JSON.parse(text)
+      return data
+    } catch {
+      console.error("Not JSON response:", text)
+      return null
+    }
+
+  } catch (e) {
+    console.error("Fetch error:", e)
+    return null
+  }
 }
 
+// ✅ GET BINS
+export const getBins = async () => {
+  const data = await safeFetch(`${BASE}/bins`)
+  return { data: Array.isArray(data) ? data : [] }
+}
+
+// ✅ UPDATE BIN
 export const updateBin = async (data) => {
-  await fetch(`${BASE}/update_bin`, {
+  await safeFetch(`${BASE}/update_bin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   })
 }
 
+// ✅ PREDICTION
 export const getPrediction = async () => {
+  const data = await safeFetch(`${BASE}/prediction`)
+  return { data: Array.isArray(data) ? data : [] }
+}
+
+// ✅ ANALYSIS
+export const getAnalysis = async () => {
+  const data = await safeFetch(`${BASE}/analysis`)
+  return { data: Array.isArray(data) ? data : [] }
+}
+
+// ✅ AI ROUTE (FIXED + SAFE)
+export const getAIRoute = async () => {
   try {
-    const r = await fetch(`${BASE}/prediction`)
-    const data = await r.json()
+    const res = await fetch(`${BASE}/ai_route`) // ✅ FIXED (NO "S")
 
-    if (!Array.isArray(data)) return { data: [] }
+    const text = await res.text()
 
-    return { data }
+    try {
+      const data = JSON.parse(text)
+      return Array.isArray(data) ? data : []
+    } catch {
+      console.error("Invalid JSON:", text)
+      return []
+    }
+
   } catch (e) {
-    console.error("Prediction error:", e)
-    return { data: [] }
+    console.error("AI Route fetch error:", e)
+    return []
   }
 }
-export const getAnalysis = async () => {
-  const r = await fetch(`${BASE}/analysis`)
-  return { data: await r.json() }
-}
-export const getAIRoute = () => fetch(`${BASE}/ai_route`).then(res => res.json())

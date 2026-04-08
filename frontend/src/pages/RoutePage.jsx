@@ -43,8 +43,11 @@ export default function RoutePage() {
     getBins().then(res => setBins(res.data || []))
   }, [])
 
+  // ✅ SAFE BINS
   const validBins = bins.filter(
-    b => !isNaN(Number(b.Latitude)) && !isNaN(Number(b.Longitude))
+    b =>
+      !isNaN(Number(b.Latitude)) &&
+      !isNaN(Number(b.Longitude))
   )
 
   // 📏 Distance
@@ -122,7 +125,7 @@ export default function RoutePage() {
 
     const path = [
       dumpYard,
-      ...ordered.map(b => [b.Latitude, b.Longitude]),
+      ...ordered.map(b => [Number(b.Latitude), Number(b.Longitude)]),
       dumpYard
     ]
 
@@ -156,83 +159,82 @@ export default function RoutePage() {
     move()
   }
 
- return (
-  <div className="page">
+  return (
+    <div className="page">
 
-    <h1>🚛 Smart Route Dashboard</h1>
+      <h1>🚛 Smart Route Dashboard</h1>
 
-    {/* BUTTON */}
-   <button onClick={startCollection} style={{ marginBottom: "10px" }}>
-      Start Collection
-    </button>
+      <button onClick={startCollection} style={{ marginBottom: "10px" }}>
+        Start Collection
+      </button>
 
-    <div className="card">
-  <h3>Distance: {distanceText}</h3>
-</div>
-
-    <div className="cards">
-
-      {/* LEFT SIDE */}
       <div className="card">
-        <h3>🧾 Collected Bins</h3>
-
-        {visited.length === 0 && <p>No bins collected</p>}
-
-        {visited.map(b => (
-          <div key={b.Bin_ID} className="alert">
-            {b.Area} ✔
-          </div>
-        ))}
+        <h3>Distance: {distanceText}</h3>
       </div>
 
-      {/* RIGHT SIDE MAP */}
-      <div className="card">
+      <div className="cards">
 
-        <MapContainer
-          center={dumpYard}
-          zoom={13}
-          style={{ height: "500px", width: "100%" }}
-        >
+        {/* LEFT PANEL */}
+        <div className="card">
+          <h3>🧾 Collected Bins</h3>
 
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {visited.length === 0 && <p>No bins collected</p>}
 
-          <Marker position={dumpYard} icon={factoryIcon} />
+          {visited.map((b, i) => (
+            <div key={i} className="alert">
+              {typeof b.Area === "string" ? b.Area : "Unknown Area"} ✔
+            </div>
+          ))}
+        </div>
 
-          {validBins.map(b => {
+        {/* RIGHT MAP */}
+        <div className="card">
 
-            const isNext =
-              selected.length > 0 &&
-              b.Bin_ID === selected[visited.length]?.Bin_ID
+          <MapContainer
+            center={dumpYard}
+            zoom={13}
+            style={{ height: "500px", width: "100%" }}
+          >
 
-            return (
-              <Marker
-                key={b.Bin_ID}
-                position={[b.Latitude, b.Longitude]}
-                icon={binIcon}
-              >
-                {isNext && (
-                  <CircleMarker
-                    center={[b.Latitude, b.Longitude]}
-                    radius={20}
-                    pathOptions={{ color: "red" }}
-                    className="blink"
-                  />
-                )}
-              </Marker>
-            )
-          })}
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-          <Polyline positions={pathLine} color="blue" />
+            <Marker position={dumpYard} icon={factoryIcon} />
 
-          {truckPos && (
-            <Marker position={truckPos} icon={truckIcon} />
-          )}
+            {validBins.map(b => {
 
-        </MapContainer>
+              const nextBin = selected[visited.length]
+              const isNext = nextBin && b.Bin_ID === nextBin.Bin_ID
+
+              return (
+                <Marker
+                  key={b.Bin_ID}
+                  position={[Number(b.Latitude), Number(b.Longitude)]}
+                  icon={binIcon}
+                >
+                  {isNext && (
+                    <CircleMarker
+                      center={[Number(b.Latitude), Number(b.Longitude)]}
+                      radius={20}
+                      pathOptions={{ color: "red" }}
+                      className="blink"
+                    />
+                  )}
+                </Marker>
+              )
+            })}
+
+            <Polyline positions={pathLine} color="blue" />
+
+            {truckPos && (
+              <Marker position={truckPos} icon={truckIcon} />
+            )}
+
+          </MapContainer>
+
+        </div>
 
       </div>
 
     </div>
-
-  </div>
-)}
+  )
+}

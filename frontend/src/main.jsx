@@ -13,8 +13,15 @@ L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 })
+function SafeApp() {
+  try {
+    return <App />
+  } catch (e) {
+    console.error("App crashed:", e)
+    return <h1 style={{ color: "red" }}>App Crashed - Check Console</h1>
+  }
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <SafeApp />
 )

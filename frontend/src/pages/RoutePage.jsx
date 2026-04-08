@@ -43,21 +43,18 @@ export default function RoutePage() {
     getBins().then(res => setBins(res.data || []))
   }, [])
 
-  // ✅ SAFE BINS
   const validBins = bins.filter(
     b =>
       !isNaN(Number(b.Latitude)) &&
       !isNaN(Number(b.Longitude))
   )
 
-  // 📏 Distance
   function distance(a, b) {
     const dx = a[0] - b[0]
     const dy = a[1] - b[1]
     return Math.sqrt(dx * dx + dy * dy)
   }
 
-  // 📏 Total distance
   function totalDistance(path) {
     let d = 0
     for (let i = 0; i < path.length - 1; i++) {
@@ -66,12 +63,10 @@ export default function RoutePage() {
     return d
   }
 
-  // 📏 Format KM
   function formatDistance(d) {
     return `${(d * 111).toFixed(2)} km`
   }
 
-  // 🧠 Nearest Neighbor
   function optimizeRoute(binList) {
     let remaining = [...binList]
     let current = dumpYard
@@ -92,7 +87,6 @@ export default function RoutePage() {
     return ordered
   }
 
-  // 🚛 Smooth Animation
   function animateMove(start, end, callback) {
     let step = 0
     const steps = 40
@@ -113,7 +107,6 @@ export default function RoutePage() {
     }, 40)
   }
 
-  // 🚀 Start Collection
   function startCollection() {
 
     const topBins = [...validBins]
@@ -121,15 +114,8 @@ export default function RoutePage() {
       .slice(0, 7)
 
     const ordered = optimizeRoute(topBins)
-    setSelected(
-  ordered.map(b => ({
-    Bin_ID: String(b.Bin_ID),
-    Area: String(b.Area || "Unknown"),
-    Latitude: Number(b.Latitude),
-    Longitude: Number(b.Longitude),
-    Waste_Level: Number(b.Waste_Level || 0)
-  }))
-)
+
+    setSelected(ordered)
 
     const path = [
       dumpYard,
@@ -146,21 +132,25 @@ export default function RoutePage() {
 
         animateMove(path[i], path[i + 1], () => {
 
-          if (i > 0 && i <= ordered.length) {
+          // ✅ SAFE CHECK (FINAL FIX)
+          if (i > 0 && i <= ordered.length && ordered[i - 1]) {
+
+            const bin = ordered[i - 1]
+
             updateBin({
-              Bin_ID: ordered[i - 1].Bin_ID,
+              Bin_ID: bin.Bin_ID,
               Waste_Level: 0
             })
 
             setVisited(prev => [
-  ...prev,
-  {
-    Bin_ID: String(ordered[i - 1].Bin_ID),
-    Area: String(ordered[i - 1].Area || "Unknown"),
-    Latitude: Number(ordered[i - 1].Latitude),
-    Longitude: Number(ordered[i - 1].Longitude)
-  }
-])
+              ...prev,
+              {
+                Bin_ID: String(bin.Bin_ID),
+                Area: String(bin.Area || "Unknown"),
+                Latitude: Number(bin.Latitude),
+                Longitude: Number(bin.Longitude)
+              }
+            ])
           }
 
           i++
@@ -190,7 +180,6 @@ export default function RoutePage() {
 
       <div className="cards">
 
-        {/* LEFT PANEL */}
         <div className="card">
           <h3>🧾 Collected Bins</h3>
 
@@ -198,12 +187,11 @@ export default function RoutePage() {
 
           {visited.map((b, i) => (
             <div key={i} className="alert">
-              {typeof b.Area === "string" ? b.Area : "Unknown Area"} ✔
+              {b.Area} ✔
             </div>
           ))}
         </div>
 
-        {/* RIGHT MAP */}
         <div className="card">
 
           <MapContainer

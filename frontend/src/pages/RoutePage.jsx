@@ -9,20 +9,17 @@ import { useEffect, useState } from "react"
 import { getBins, updateBin } from "../services/api"
 import L from "leaflet"
 
-// 🚛 Truck Icon
 const truckIcon = L.divIcon({
   html: "🚛",
   className: "truck-icon",
   iconSize: [40, 40]
 })
 
-// 🏭 Dumpyard Icon
 const factoryIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/2906/2906274.png",
   iconSize: [40, 40]
 })
 
-// 🗑 Bin Icon
 const binIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/484/484662.png",
   iconSize: [30, 30]
@@ -35,6 +32,7 @@ export default function RoutePage() {
   const [pathLine, setPathLine] = useState([])
   const [visited, setVisited] = useState([])
   const [selected, setSelected] = useState([])
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [distanceText, setDistanceText] = useState("")
 
   const dumpYard = [12.9716, 77.5946]
@@ -45,6 +43,7 @@ export default function RoutePage() {
 
   const validBins = bins.filter(
     b =>
+      b &&
       !isNaN(Number(b.Latitude)) &&
       !isNaN(Number(b.Longitude))
   )
@@ -67,6 +66,7 @@ export default function RoutePage() {
     return `${(d * 111).toFixed(2)} km`
   }
 
+  // ✅ NEAREST NEIGHBOR
   function optimizeRoute(binList) {
     let remaining = [...binList]
     let current = dumpYard
@@ -109,11 +109,24 @@ export default function RoutePage() {
 
   function startCollection() {
 
-    const topBins = [...validBins]
-      .sort((a, b) => b.Waste_Level - a.Waste_Level)
-      .slice(0, 7)
+    // ✅ STEP 1: FILTER ≥ 50
+    let filtered = validBins.filter(
+      b => Number(b.Waste_Level) >= 50
+    )
 
-    const ordered = optimizeRoute(topBins)
+    if (filtered.length === 0) {
+      alert("No bins above 50%")
+      return
+    }
+
+    // ✅ STEP 2: PRIORITY (HIGH → LOW)
+    filtered.sort((a, b) => b.Waste_Level - a.Waste_Level)
+
+    // ✅ STEP 3: LIMIT 7
+    const priorityBins = filtered.slice(0, 7)
+
+    // ✅ STEP 4: OPTIMIZE ROUTE (NN)
+    const ordered = optimizeRoute(priorityBins)
 
     setSelected(ordered)
 
@@ -132,28 +145,27 @@ export default function RoutePage() {
 
         animateMove(path[i], path[i + 1], () => {
 
-          // ✅ SAFE CHECK (FINAL FIX)
-          if (i > 0 && i <= ordered.length && ordered[i - 1]) {
+          const bin =
+            i > 0 && i - 1 < ordered.length
+              ? ordered[i - 1]
+              : null
 
-            const bin = ordered[i - 1]
-
+          if (bin && bin.Bin_ID) {
             updateBin({
-              Bin_ID: bin.Bin_ID,
+              Bin_ID: String(bin.Bin_ID),
               Waste_Level: 0
             })
 
             setVisited(prev => [
               ...prev,
               {
-                Bin_ID: String(bin.Bin_ID),
-                Area: String(bin.Area || "Unknown"),
-                Latitude: Number(bin.Latitude),
-                Longitude: Number(bin.Longitude)
+                Area: String(bin.Area || "Unknown")
               }
             ])
           }
 
           i++
+          setCurrentIndex(i)
           move()
         })
       }
@@ -162,6 +174,8 @@ export default function RoutePage() {
     setTruckPos(dumpYard)
     setVisited([])
     setPathLine([])
+    setCurrentIndex(0)
+
     move()
   }
 
@@ -170,7 +184,7 @@ export default function RoutePage() {
 
       <h1>🚛 Smart Route Dashboard</h1>
 
-      <button onClick={startCollection} style={{ marginBottom: "10px" }}>
+      <button onClick={startCollection}>
         Start Collection
       </button>
 
@@ -204,23 +218,37 @@ export default function RoutePage() {
 
             <Marker position={dumpYard} icon={factoryIcon} />
 
-            {validBins.map(b => {
+            {validBins.map((b, idx) => {
 
-              const nextBin = selected[visited.length] || null
-              const isNext = nextBin && b.Bin_ID === nextBin.Bin_ID
+              if (!b || !b.Bin_ID) return null
+
+              const nextBin =
+                currentIndex > 0 && currentIndex <= selected.length
+                  ? selected[currentIndex - 1]
+                  : null
+
+              const isNext =
+                nextBin &&
+                nextBin.Bin_ID &&
+                String(b.Bin_ID) === String(nextBin.Bin_ID)
 
               return (
                 <Marker
-                  key={b.Bin_ID}
-                  position={[Number(b.Latitude), Number(b.Longitude)]}
+                  key={b.Bin_ID || idx}
+                  position={[
+                    Number(b.Latitude),
+                    Number(b.Longitude)
+                  ]}
                   icon={binIcon}
                 >
                   {isNext && (
                     <CircleMarker
-                      center={[Number(b.Latitude), Number(b.Longitude)]}
+                      center={[
+                        Number(b.Latitude),
+                        Number(b.Longitude)
+                      ]}
                       radius={20}
                       pathOptions={{ color: "red" }}
-                      className="blink"
                     />
                   )}
                 </Marker>

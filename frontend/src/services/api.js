@@ -52,20 +52,18 @@ export const getAnalysis = async () => {
 // ✅ AI ROUTE (FIXED + SAFE)
 export const getAIRoute = async () => {
   try {
-    const res = await fetch(`${BASE}/ai_route`) // ✅ FIXED (NO "S")
+    const res = await fetch(`${BASE}/ai_route`) // ✅ correct
 
-    const text = await res.text()
-
-    try {
-      const data = JSON.parse(text)
-      return Array.isArray(data) ? data : []
-    } catch {
-      console.error("Invalid JSON:", text)
+    if (!res.ok) {
+      console.error("404 or server error")
       return []
     }
 
+    const data = await res.json()
+    return Array.isArray(data) ? data : []
+
   } catch (e) {
-    console.error("AI Route fetch error:", e)
+    console.error("AI Route error:", e)
     return []
   }
 }

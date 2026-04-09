@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react"
 import { getBins, getPrediction } from "../services/api"
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, CartesianGrid, BarChart, Bar
+} from "recharts"
 
 export default function Dashboard() {
 
@@ -12,40 +16,66 @@ export default function Dashboard() {
 
   async function load() {
     try {
-      const binsRes = await getBins()
-      const predRes = await getPrediction()
+      const b = await getBins()
+      const p = await getPrediction()
 
-      const safeBins = Array.isArray(binsRes.data) ? binsRes.data : []
-
-      const safePred = Array.isArray(predRes.data)
-        ? predRes.data.map(p => ({
-            Area: String(p?.Area || "Unknown"),
-            actual: Number(p?.actual || 0),
-            ai: Number(p?.ai_predicted || 0),
-            ml: Number(p?.ml_predicted || 0)
-          }))
-        : []
-
-      setBins(safeBins)
-      setPred(safePred)
-
+      setBins(Array.isArray(b.data) ? b.data : [])
+      setPred(Array.isArray(p.data) ? p.data : [])
     } catch (e) {
       console.error(e)
     }
   }
 
+  // ✅ SAFE DATA + ERROR CALCULATION
+  const safePred = pred.map(p => {
+    const actual = Number(p.actual || 0)
+    const ai = Number(p.ai_predicted || 0)
+    const ml = Number(p.ml_predicted || 0)
+
+    return {
+      Area: String(p.Area || ""),
+      actual,
+      ai,
+      ml,
+      ai_error: Math.abs(actual - ai),
+      ml_error: Math.abs(actual - ml)
+    }
+  })
+
+  // ✅ ACCURACY CALCULATION
+  const aiAccuracy = safePred.length
+    ? (100 - (safePred.reduce((a, b) => a + b.ai_error, 0) / safePred.length)).toFixed(1)
+    : 0
+
+  const mlAccuracy = safePred.length
+    ? (100 - (safePred.reduce((a, b) => a + b.ml_error, 0) / safePred.length)).toFixed(1)
+    : 0
+
   const low = bins.filter(b => b.Waste_Level < 50).length
-  const mid = bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length
+  const medium = bins.filter(b => b.Waste_Level >= 50 && b.Waste_Level <= 80).length
   const high = bins.filter(b => b.Waste_Level > 80).length
+
+  const pieData = [
+    { name: "Low", value: low },
+    { name: "Medium", value: medium },
+    { name: "High", value: high }
+  ]
+
+  const COLORS = ["#22c55e", "#facc15", "#ef4444"]
 
   return (
     <div className="page">
 
-      <div className="card">
-        <h1>🚀 Smart Waste Control Center</h1>
+      {/* 🚀 HEADER */}
+      <div className="card" style={{
+        background: "linear-gradient(135deg, #0ea5e9, #22c55e)",
+        color: "white"
+      }}>
+        <h1>🚀 Smart Waste Dashboard</h1>
+        <p>AI + ML powered waste monitoring system</p>
       </div>
 
-      {/* Stats */}
+      {/* 📊 KPI CARDS */}
       <div className="cards">
         <div className="card">
           <h3>Total Bins</h3>
@@ -56,33 +86,96 @@ export default function Dashboard() {
           <h3>Overflow</h3>
           <h2>{high}</h2>
         </div>
+
+        <div className="card">
+          <h3>AI Accuracy</h3>
+          <h2 style={{ color: "#facc15" }}>{aiAccuracy}%</h2>
+        </div>
+
+        <div className="card">
+          <h3>ML Accuracy</h3>
+          <h2 style={{ color: "#ef4444" }}>{mlAccuracy}%</h2>
+        </div>
       </div>
 
-      {/* Alerts */}
-      <h3>🚨 Alerts</h3>
-      {bins.filter(b => b.Waste_Level > 80).map(b => (
-        <div key={b.Bin_ID} className="alert">
-          {String(b.Area)} - {Number(b.Waste_Level)}%
-        </div>
-      ))}
-
-      {/* 🔥 SAFE RENDER ONLY */}
+      {/* 📈 AI vs ACTUAL */}
       <div className="card">
-        <h3>📈 Predictions</h3>
+        <h3>📈 AI Prediction vs Actual</h3>
 
-        {pred.length === 0 && <p>No data</p>}
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={safePred}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="Area" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="actual" stroke="#38bdf8" strokeWidth={3} />
+            <Line type="monotone" dataKey="ai" stroke="#facc15" strokeWidth={3} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-        {pred.map((p, i) => (
-          <div key={i}>
-            <p>
-              <b>{String(p.Area)}</b>
-            </p>
+      {/* 📊 ML vs ACTUAL */}
+      <div className="card">
+        <h3>📊 ML Prediction vs Actual</h3>
 
-            <p>Actual: {p.actual}</p>
-            <p>AI: {p.ai}</p>
-            <p>ML: {p.ml}</p>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={safePred}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="Area" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="actual" stroke="#38bdf8" strokeWidth={3} />
+            <Line type="monotone" dataKey="ml" stroke="#ef4444" strokeWidth={3} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-            <hr />
+      {/* 📉 ERROR GRAPH */}
+      <div className="card">
+        <h3>📉 Prediction Error (Lower = Better)</h3>
+
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={safePred}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="Area" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="ai_error" fill="#facc15" />
+            <Bar dataKey="ml_error" fill="#ef4444" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 🧩 PIE */}
+      <div className="card">
+        <h3>🧩 Waste Distribution</h3>
+
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie data={pieData} dataKey="value" outerRadius={100} label>
+              {pieData.map((_, i) => (
+                <Cell key={i} fill={COLORS[i]} />
+              ))}
+            </Pie>
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 🚨 ALERTS */}
+      <div className="card">
+        <h3>🚨 Overflow Alerts</h3>
+
+        {bins.filter(b => b.Waste_Level > 80).length === 0 && (
+          <p>No alerts</p>
+        )}
+
+        {bins.filter(b => b.Waste_Level > 80).map(b => (
+          <div key={b.Bin_ID} className="alert">
+            {b.Area} - {b.Waste_Level}%
           </div>
         ))}
       </div>

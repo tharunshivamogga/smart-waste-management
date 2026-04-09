@@ -17,18 +17,39 @@ export default function MapPage() {
     loadData()
   }, [])
 
+  // ✅ HANDLE INPUT (LIMIT 0–100)
+  function handleWasteChange(val) {
+    let num = Number(val)
+
+    if (isNaN(num)) num = 0
+    if (num < 0) num = 0
+    if (num > 100) num = 100
+
+    setWaste(num)
+  }
+
   function updateHandler() {
     if (!binId || waste === "") {
       alert("Enter values")
       return
     }
 
+    const safeWaste = Number(waste)
+
+    // ✅ FINAL CHECK
+    if (safeWaste < 0 || safeWaste > 100) {
+      alert("Waste must be between 0 and 100")
+      return
+    }
+
     updateBin({
       Bin_ID: binId,
-      Waste_Level: Number(waste)
+      Waste_Level: safeWaste
     }).then(() => {
       loadData()
       setSelectedBin(null)
+      setWaste("")
+      setBinId("")
     })
   }
 
@@ -43,7 +64,7 @@ export default function MapPage() {
   return (
     <div style={{ display: "flex", gap: "20px" }}>
 
-      {/* 🔥 LEFT PANEL (ALL BINS) */}
+      {/* 🔥 LEFT PANEL */}
       <div style={{
         width: "300px",
         maxHeight: "500px",
@@ -88,69 +109,71 @@ export default function MapPage() {
       {/* 🔥 RIGHT SIDE */}
       <div style={{ flex: 1 }}>
         <div className="card">
-        <h2>🗺 Waste Monitoring</h2>
+          <h2>🗺 Waste Monitoring</h2>
 
-        {/* 🔧 UPDATE FORM */}
-        <div style={{ marginBottom: "10px" }}>
-          <input
-            placeholder="Bin ID"
-            value={binId}
-            onChange={e => setBinId(e.target.value)}
-          />
+          {/* 🔧 UPDATE FORM */}
+          <div style={{ marginBottom: "10px" }}>
+            <input
+              placeholder="Bin ID"
+              value={binId}
+              onChange={e => setBinId(e.target.value)}
+            />
 
-          <input
-            placeholder="Waste %"
-            value={waste}
-            onChange={e => setWaste(e.target.value)}
-            style={{ marginLeft: "10px" }}
-          />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              placeholder="Waste % (0–100)"
+              value={waste}
+              onChange={e => handleWasteChange(e.target.value)}
+              style={{ marginLeft: "10px" }}
+            />
 
-          <button onClick={updateHandler} style={{ marginLeft: "10px" }}>
-            Update
-          </button>
+            <button onClick={updateHandler} style={{ marginLeft: "10px" }}>
+              Update
+            </button>
+          </div>
+
+          {/* 🗺 MAP */}
+          <MapContainer
+            center={[12.97, 77.59]}
+            zoom={14}
+            style={{ height: "500px", width: "100%" }}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+
+            {bins.map(b => {
+              const isSelected = selectedBin === b.Bin_ID
+
+              let className = ""
+              if (b.Waste_Level > 80) className = "blink"
+              else if (b.Waste_Level > 50) className = "pulse"
+
+              return (
+                <CircleMarker
+                  key={b.Bin_ID}
+                  center={[Number(b.Latitude), Number(b.Longitude)]}
+                  radius={isSelected ? 22 : 10 + b.Waste_Level / 10}
+                  className={className}
+                  pathOptions={{
+                    color: isSelected ? "cyan" : getColor(b.Waste_Level),
+                    fillColor: getColor(b.Waste_Level),
+                    fillOpacity: 0.7,
+                    weight: isSelected ? 4 : 1
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      setBinId(b.Bin_ID)
+                      setWaste(b.Waste_Level)
+                      setSelectedBin(b.Bin_ID)
+                    }
+                  }}
+                />
+              )
+            })}
+
+          </MapContainer>
         </div>
-
-        {/* 🗺 MAP */}
-        <MapContainer
-          center={[12.97, 77.59]}
-          zoom={14}
-          style={{ height: "500px", width: "100%" }}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-
-          {bins.map(b => {
-  const isSelected = selectedBin === b.Bin_ID
-
-  let className = ""
-  if (b.Waste_Level > 80) className = "blink"
-  else if (b.Waste_Level > 50) className = "pulse"
-
-  return (
-    <CircleMarker
-      key={b.Bin_ID}
-      center={[Number(b.Latitude), Number(b.Longitude)]}
-      radius={isSelected ? 22 : 10 + b.Waste_Level / 10}
-      className={className}
-      pathOptions={{
-        color: isSelected ? "cyan" : getColor(b.Waste_Level),
-        fillColor: getColor(b.Waste_Level),
-        fillOpacity: 0.7,
-        weight: isSelected ? 4 : 1
-      }}
-      eventHandlers={{
-        click: () => {
-          setBinId(b.Bin_ID)
-          setWaste(b.Waste_Level)
-          setSelectedBin(b.Bin_ID)
-        }
-      }}
-    />
-  )
-})}
-
-        </MapContainer>
-  
-      </div>
       </div>
     </div>
   )

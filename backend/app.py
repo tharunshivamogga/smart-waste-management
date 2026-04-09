@@ -83,7 +83,7 @@ def stats():
 
 # ✅ PREDICTION API (REALISTIC)
 @app.route("/prediction")
-def prediction():
+def prediction_api():
     df = load()
 
     result = []

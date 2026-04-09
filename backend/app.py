@@ -151,32 +151,7 @@ def ai_route():
     result = sorted_bins[:7]
 
     return jsonify(result)
-import random
 
-@app.route("/prediction")
-def prediction():
-    df = load()
-
-    result = []
-
-    for _, row in df.iterrows():
-
-        actual = int(row["Waste_Level"])
-
-        # 🔥 make AI slightly higher
-        ai = min(100, actual + random.randint(5, 20))
-
-        # 🔥 ML realistic variation
-        ml = min(100, max(0, actual + random.randint(-15, 15)))
-
-        result.append({
-            "Area": str(row["Area"]),
-            "actual": actual,
-            "ai_predicted": ai,
-            "ml_predicted": ml
-        })
-
-    return jsonify(result)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

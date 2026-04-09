@@ -4,22 +4,20 @@ import pandas as pd
 import numpy as np
 import math
 import os
-from ml_model import predict_waste
+from ml_model import predict_waste, analyze_bins
+
 app = Flask(__name__)
 CORS(app)
 
-# ✅ ROOT CHECK
 @app.route("/")
 def home():
     return "Backend is LIVE 🚀"
 
-# ✅ FILE PATH (SAFE)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(BASE_DIR, "dataset", "bins.csv")
 
 print("DATA PATH:", DATA)
 
-# ✅ LOAD FUNCTION (IMPORTANT)
 def load():
     try:
         return pd.read_csv(DATA)
@@ -29,20 +27,17 @@ def load():
             {"Bin_ID": "B1", "Area": "Test", "Latitude": 12.97, "Longitude": 77.59, "Waste_Level": 50}
         ])
 
-# ✅ SAVE FUNCTION
 def save(df):
     try:
         df.to_csv(DATA, index=False)
     except:
         pass
 
-# ✅ BINS API
 @app.route("/bins")
 def bins():
     df = load()
     return jsonify(df.to_dict(orient="records"))
 
-# ✅ STATS API
 @app.route("/stats")
 def stats():
     df = load()
@@ -59,6 +54,7 @@ def stats():
         "overflow_bins": int((df["Waste_Level"] > 80).sum()),
         "avg_waste": float(df["Waste_Level"].mean())
     })
+
 @app.route("/prediction")
 def prediction():
     df = load()
@@ -75,10 +71,8 @@ def prediction():
 
     for i, row in df.iterrows():
 
-        # AI prediction
         ai = min(100, row["Waste_Level"] + 15)
 
-        # ML prediction SAFE
         try:
             ml = float(ml_values[i])
         except:
@@ -92,13 +86,12 @@ def prediction():
         })
 
     return jsonify(result)
-from ml_model import analyze_bins
 
 @app.route("/analysis")
 def analysis():
     df = load()
     return jsonify(analyze_bins(df))
-# ✅ ANALYTICS API
+
 @app.route("/route")
 def route():
     df = load().sort_values("Waste_Level", ascending=False).head(10)
@@ -119,6 +112,8 @@ def route():
         result.append(row.to_dict())
 
     return jsonify(result)
+
+# 🔥 FINAL FIX HERE
 @app.route("/update_bin", methods=["POST"])
 def update_bin():
     data = request.json
@@ -128,25 +123,35 @@ def update_bin():
     if df.empty:
         return jsonify({"error": "No data"}), 400
 
-    # 🔥 ensure type match
     df["Bin_ID"] = df["Bin_ID"].astype(str)
 
-    df.loc[df["Bin_ID"] == str(data["Bin_ID"]), "Waste_Level"] = int(data["Waste_Level"])
+    try:
+        waste = int(data["Waste_Level"])
+    except:
+        return jsonify({"error": "Invalid waste value"}), 400
+
+    # ✅ LIMIT BETWEEN 0–100
+    if waste < 0:
+        waste = 0
+    if waste > 100:
+        waste = 100
+
+    df.loc[df["Bin_ID"] == str(data["Bin_ID"]), "Waste_Level"] = waste
 
     save(df)
 
-    return jsonify({"message": "Updated"})
+    return jsonify({"message": "Updated", "value": waste})
+
 @app.route("/ai_route")
 def ai_route():
     bins = load().to_dict(orient="records")
 
-    # sort by waste + slight randomness (AI feel)
     sorted_bins = sorted(bins, key=lambda x: x["Waste_Level"], reverse=True)
 
-    # simulate smarter grouping (cluster-like)
     result = sorted_bins[:7]
 
     return jsonify(result)
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

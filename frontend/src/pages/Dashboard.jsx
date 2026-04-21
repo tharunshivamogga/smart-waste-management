@@ -10,7 +10,10 @@ export default function Dashboard() {
 
   const [bins, setBins] = useState([])
   const [pred, setPred] = useState([])
-
+  const [aiAcc, setAiAcc] = useState(0)
+  const [mlAcc, setMlAcc] = useState(0)
+  const [aiRmse, setAiRmse] = useState(0)
+const [mlRmse, setMlRmse] = useState(0)
   useEffect(() => {
     load()
   }, [])
@@ -22,6 +25,11 @@ export default function Dashboard() {
 
       setBins(b.data || [])
       setPred(p.data || [])
+
+      setAiAcc(p.ai_accuracy)
+      setMlAcc(p.ml_accuracy)
+      setAiRmse(p.ai_rmse)
+      setMlRmse(p.ml_rmse)
     } catch (e) {
       console.error(e)
     }
@@ -100,13 +108,13 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <h3>AI Accuracy</h3>
-          <h2>{aiAccuracy}%</h2>
+         <h3>AI Accuracy</h3>
+         <h2>{aiAcc.toFixed(2)}%</h2>
         </div>
 
         <div className="card">
           <h3>ML Accuracy</h3>
-          <h2>{mlAccuracy}%</h2>
+          <h2>{mlAcc.toFixed(2)}%</h2>
         </div>
       </div>
 
@@ -122,6 +130,25 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+      <div className="card">
+  <h3>📉 RMSE Comparison</h3>
+
+  <ResponsiveContainer width="100%" height={300}>
+    <BarChart
+      data={[
+        { name: "AI", value: aiRmse },
+        { name: "ML", value: mlRmse }
+      ]}
+    >
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="name" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Bar dataKey="value" fill="#38bdf8" />
+    </BarChart>
+  </ResponsiveContainer>
+</div>
 
       {/* 📈 AI CHART */}
       <div className="card">

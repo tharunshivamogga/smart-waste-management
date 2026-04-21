@@ -39,8 +39,27 @@ export const updateBin = async (data) => {
 
 // ✅ PREDICTION
 export const getPrediction = async () => {
-  const data = await safeFetch(`${BASE}/prediction`)
-  return { data: Array.isArray(data) ? data : [] }
+  try {
+    const res = await fetch(`${BASE}/prediction`)
+    const data = await res.json()
+
+    return {
+      data: data.data || [],
+      ai_accuracy: data.ai_accuracy || 0,
+      ml_accuracy: data.ml_accuracy || 0,
+      ai_rmse: data.ai_rmse || 0,
+      ml_rmse: data.ml_rmse || 0
+    }
+  } catch (e) {
+    console.error("Prediction error:", e)
+    return {
+      data: [],
+      ai_accuracy: 0,
+      ml_accuracy: 0,
+      ai_rmse: 0,
+      ml_rmse: 0
+    }
+  }
 }
 
 // ✅ ANALYSIS

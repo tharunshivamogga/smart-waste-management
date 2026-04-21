@@ -89,7 +89,6 @@ def prediction_api():
     if df.empty:
         return jsonify({"data": []})
 
-    # 🔥 ML OUTPUT (NOW RETURNS 4 VALUES)
     try:
         ml_values, ml_mae, ml_accuracy, ml_rmse = predict_waste(df)
     except:
@@ -101,27 +100,25 @@ def prediction_api():
     result = []
     ai_errors = []
 
+    import random  # ✅ CORRECT PLACE
+
     for i, row in df.iterrows():
 
         actual = float(row["Waste_Level"])
 
-        # AI LOGIC
-    import random
+        # ✅ AI LOGIC (INSIDE LOOP)
+        if actual > 80:
+            ai = actual + random.randint(2, 8)
+        elif actual > 50:
+            ai = actual + random.randint(5, 12)
+        else:
+            ai = actual + random.randint(10, 20)
 
-    if actual > 80:
-        ai = actual + random.randint(2, 8)
-
-    elif actual > 50:
-         ai = actual + random.randint(5, 12)
-
-    else:
-        ai = actual + random.randint(10, 20)
-
-# add real-world variation
+        # variation
         ai += random.uniform(-5, 5)
-
         ai = max(0, min(100, ai))
-        error = float(actual) - float(ai)
+
+        error = actual - ai
         ai_errors.append(error)
 
         try:
@@ -136,7 +133,7 @@ def prediction_api():
             "ml_predicted": ml
         })
 
-    # 🔥 AI METRICS
+    # ✅ METRICS
     ai_errors = np.array(ai_errors)
 
     ai_mae = np.mean(np.abs(ai_errors))

@@ -100,7 +100,7 @@ def prediction_api():
     result = []
     ai_errors = []
 
-    import random  # ✅ CORRECT PLACE
+    import random  # ✅ correct place
 
     for i, row in df.iterrows():
 
@@ -116,6 +116,8 @@ def prediction_api():
 
         # variation
         ai += random.uniform(-5, 5)
+
+        # clamp
         ai = max(0, min(100, ai))
 
         error = actual - ai
@@ -133,7 +135,7 @@ def prediction_api():
             "ml_predicted": ml
         })
 
-    # ✅ METRICS
+       # ✅ METRICS
     ai_errors = np.array(ai_errors)
 
     ai_mae = np.mean(np.abs(ai_errors))
@@ -147,6 +149,7 @@ def prediction_api():
         "ai_rmse": float(ai_rmse),
         "ml_rmse": float(ml_rmse)
     })
+    
 # ✅ ANALYSIS API
 @app.route("/analysis")
 def analysis():

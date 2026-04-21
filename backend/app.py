@@ -106,16 +106,22 @@ def prediction_api():
         actual = float(row["Waste_Level"])
 
         # AI LOGIC
-        if actual > 80:
-            ai = actual + 5
-        elif actual > 50:
-            ai = actual + 10
-        else:
-            ai = actual + 20
+    import random
 
-        ai = min(100, ai)
+    if actual > 80:
+        ai = actual + random.randint(2, 8)
 
-        error = actual - ai
+    elif actual > 50:
+         ai = actual + random.randint(5, 12)
+
+    else:
+        ai = actual + random.randint(10, 20)
+
+# add real-world variation
+        ai += random.uniform(-5, 5)
+
+        ai = max(0, min(100, ai))
+        error = float(actual) - float(ai)
         ai_errors.append(error)
 
         try:

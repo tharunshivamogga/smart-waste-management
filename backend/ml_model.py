@@ -1,30 +1,44 @@
 import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.cluster import KMeans
 
-# 🔥 ML PREDICTION FUNCTION (REQUIRED)
+# 🔥 TRAIN + PREDICT WITH RMSE
 def predict_waste(df):
 
     waste = df["Waste_Level"].values
 
-    # normalize
-    norm = waste / 100
+    # TARGET GENERATION
+    future = []
+    for w in waste:
+        if w > 80:
+            future.append(min(100, w + np.random.randint(2, 8)))
+        elif w > 50:
+            future.append(min(100, w + np.random.randint(5, 15)))
+        else:
+            future.append(min(100, w + np.random.randint(10, 25)))
 
-    # growth logic
-    growth = 0.1 + (norm * 0.5)
+    X = waste.reshape(-1, 1)
+    y = np.array(future)
 
-    predicted = waste + (waste * growth)
+    # MODEL
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X, y)
 
-    # add variation
-    noise = np.random.uniform(-5, 10, size=len(predicted))
-    predicted = predicted + noise
+    predictions = model.predict(X)
+    predictions = np.clip(predictions, 0, 100)
 
-    # clamp
-    predicted = np.clip(predicted, 0, 100)
+    # 🔥 ERRORS
+    errors = y - predictions
 
-    return predicted.tolist()
+    mae = np.mean(np.abs(errors))
+    rmse = np.sqrt(np.mean(errors ** 2))
+    accuracy = 100 - mae
+
+    return predictions.tolist(), float(mae), float(accuracy), float(rmse)
 
 
-# 🔥 CLUSTERING FUNCTION (FOR ANALYSIS)
+# 🔥 CLUSTERING
 def analyze_bins(df):
 
     waste = df["Waste_Level"].values.reshape(-1, 1)
@@ -38,21 +52,13 @@ def analyze_bins(df):
 
         level = row["Waste_Level"]
 
-        # usage pattern
+        usage = "Low Usage"
         if level > 80:
             usage = "High Usage"
         elif level > 50:
             usage = "Medium Usage"
-        else:
-            usage = "Low Usage"
 
-        # cluster meaning
-        if labels[i] == 0:
-            group = "Low Priority"
-        elif labels[i] == 1:
-            group = "Medium Priority"
-        else:
-            group = "High Priority"
+        group = ["Low Priority", "Medium Priority", "High Priority"][labels[i]]
 
         result.append({
             "Bin_ID": row["Bin_ID"],

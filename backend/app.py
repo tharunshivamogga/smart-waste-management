@@ -86,17 +86,42 @@ def stats():
 def prediction_api():
     df = load()
 
+    if df.empty:
+        return jsonify({"data": []})
+
+    # 🔥 ML OUTPUT (NOW RETURNS 4 VALUES)
+    try:
+        ml_values, ml_mae, ml_accuracy, ml_rmse = predict_waste(df)
+    except:
+        ml_values = df["Waste_Level"].values
+        ml_mae = 0
+        ml_accuracy = 0
+        ml_rmse = 0
+
     result = []
+    ai_errors = []
 
-    for _, row in df.iterrows():
+    for i, row in df.iterrows():
 
-        actual = int(row["Waste_Level"])
+        actual = float(row["Waste_Level"])
 
-        # 🔥 AI (optimistic)
-        ai = min(100, actual + random.randint(5, 20))
+        # AI LOGIC
+        if actual > 80:
+            ai = actual + 5
+        elif actual > 50:
+            ai = actual + 10
+        else:
+            ai = actual + 20
 
-        # 🔥 ML (realistic variation)
-        ml = min(100, max(0, actual + random.randint(-15, 15)))
+        ai = min(100, ai)
+
+        error = actual - ai
+        ai_errors.append(error)
+
+        try:
+            ml = float(ml_values[i])
+        except:
+            ml = actual
 
         result.append({
             "Area": str(row["Area"]),
@@ -105,8 +130,20 @@ def prediction_api():
             "ml_predicted": ml
         })
 
-    return jsonify(result)
+    # 🔥 AI METRICS
+    ai_errors = np.array(ai_errors)
 
+    ai_mae = np.mean(np.abs(ai_errors))
+    ai_rmse = np.sqrt(np.mean(ai_errors ** 2))
+    ai_accuracy = 100 - ai_mae
+
+    return jsonify({
+        "data": result,
+        "ai_accuracy": float(ai_accuracy),
+        "ml_accuracy": float(ml_accuracy),
+        "ai_rmse": float(ai_rmse),
+        "ml_rmse": float(ml_rmse)
+    })
 # ✅ ANALYSIS API
 @app.route("/analysis")
 def analysis():

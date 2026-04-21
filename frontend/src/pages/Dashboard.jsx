@@ -130,7 +130,7 @@ const [mlRmse, setMlRmse] = useState(0)
           </div>
         ))}
       </div>
-      <div className="card">
+    <div className="card">
   <h3>📉 RMSE Comparison</h3>
 
   <ResponsiveContainer width="100%" height={300}>
@@ -140,16 +140,38 @@ const [mlRmse, setMlRmse] = useState(0)
         { name: "ML", value: mlRmse }
       ]}
     >
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Tooltip />
-      <Legend />
-      <Bar dataKey="value" fill="#38bdf8" />
+      <defs>
+        <linearGradient id="aiColor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#facc15"/>
+          <stop offset="100%" stopColor="#f59e0b"/>
+        </linearGradient>
+
+        <linearGradient id="mlColor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#38bdf8"/>
+          <stop offset="100%" stopColor="#0ea5e9"/>
+        </linearGradient>
+      </defs>
+
+      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+      <XAxis dataKey="name" stroke="#44474b" />
+      <YAxis stroke="#454c55" />
+
+      <Tooltip
+        contentStyle={{
+          backgroundColor: "#3a4e7c",
+          border: "1px solid #38bdf8",
+          borderRadius: "10px",
+          color: "#fff"
+        }}
+      />
+
+      <Bar dataKey="value" radius={[10, 10, 0, 0]}>
+        <Cell fill="url(#aiColor)" />
+        <Cell fill="url(#mlColor)" />
+      </Bar>
     </BarChart>
   </ResponsiveContainer>
 </div>
-
       {/* 📈 AI CHART */}
       <div className="card">
         <h3>📈 AI vs Actual</h3>
@@ -200,19 +222,64 @@ const [mlRmse, setMlRmse] = useState(0)
 
       {/* 🧩 PIE */}
       <div className="card">
-        <h3>🧩 Waste Distribution</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie data={pieData} dataKey="value" outerRadius={100}>
-              {pieData.map((_, i) => (
-                <Cell key={i} fill={COLORS[i]} />
-              ))}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+  <h3>🧩 Waste Distribution</h3>
 
+  <ResponsiveContainer width="100%" height={320}>
+    <PieChart>
+
+      {/* 🔥 GRADIENT COLORS */}
+      <defs>
+        <linearGradient id="lowColor" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#22c55e"/>
+          <stop offset="100%" stopColor="#4ade80"/>
+        </linearGradient>
+
+        <linearGradient id="mediumColor" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#facc15"/>
+          <stop offset="100%" stopColor="#f59e0b"/>
+        </linearGradient>
+
+        <linearGradient id="highColor" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ef4444"/>
+          <stop offset="100%" stopColor="#dc2626"/>
+        </linearGradient>
+      </defs>
+
+      {/* 🔥 PIE */}
+      <Pie
+        data={pieData}
+        dataKey="value"
+        nameKey="name"
+        cx="50%"
+        cy="50%"
+        outerRadius={110}
+        innerRadius={50}   // 🔥 donut style
+        paddingAngle={5}
+        animationDuration={1000}
+        label={({ name, percent }) =>
+          `${name} ${(percent * 100).toFixed(0)}%`
+        }
+      >
+        <Cell fill="url(#lowColor)" />
+        <Cell fill="url(#mediumColor)" />
+        <Cell fill="url(#highColor)" />
+      </Pie>
+
+      {/* 🔥 TOOLTIP */}
+      <Tooltip
+        contentStyle={{
+          backgroundColor: "#0f172a",
+          border: "1px solid #38bdf8",
+          borderRadius: "10px",
+          color: "#fff"
+        }}
+      />
+
+      <Legend />
+
+    </PieChart>
+  </ResponsiveContainer>
+</div>
     </div>
   )
 }

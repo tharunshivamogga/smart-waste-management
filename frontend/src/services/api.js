@@ -1,23 +1,21 @@
 const BASE = "https://smart-waste-management-awpg.onrender.com"
 
-// ✅ SAFE FETCH HELPER
+// ✅ UNIVERSAL SAFE FETCH
 async function safeFetch(url, options = {}) {
   try {
     const res = await fetch(url, options)
 
-    // ❗ handle non-JSON (like 404 HTML page)
     const text = await res.text()
 
     try {
-      const data = JSON.parse(text)
-      return data
+      return JSON.parse(text)
     } catch {
-      console.error("Not JSON response:", text)
+      console.error("❌ Not JSON:", text)
       return null
     }
 
   } catch (e) {
-    console.error("Fetch error:", e)
+    console.error("❌ Fetch error:", e)
     return null
   }
 }
@@ -37,21 +35,14 @@ export const updateBin = async (data) => {
   })
 }
 
-// ✅ PREDICTION
+// ✅ 🔥 FIXED PREDICTION (MAIN FIX)
 export const getPrediction = async () => {
-  try {
-    const res = await fetch(`${BASE}/prediction`)
-    const data = await res.json()
 
-    return {
-      data: data.data || [],
-      ai_accuracy: data.ai_accuracy || 0,
-      ml_accuracy: data.ml_accuracy || 0,
-      ai_rmse: data.ai_rmse || 0,
-      ml_rmse: data.ml_rmse || 0
-    }
-  } catch (e) {
-    console.error("Prediction error:", e)
+  const res = await safeFetch(`${BASE}/prediction`)
+
+  // ❗ IMPORTANT: HANDLE NULL / WRONG RESPONSE
+  if (!res || !res.data) {
+    console.error("❌ Prediction API failed")
     return {
       data: [],
       ai_accuracy: 0,
@@ -59,6 +50,14 @@ export const getPrediction = async () => {
       ai_rmse: 0,
       ml_rmse: 0
     }
+  }
+
+  return {
+    data: Array.isArray(res.data) ? res.data : [],
+    ai_accuracy: Number(res.ai_accuracy || 0),
+    ml_accuracy: Number(res.ml_accuracy || 0),
+    ai_rmse: Number(res.ai_rmse || 0),
+    ml_rmse: Number(res.ml_rmse || 0)
   }
 }
 
@@ -68,21 +67,8 @@ export const getAnalysis = async () => {
   return { data: Array.isArray(data) ? data : [] }
 }
 
-// ✅ AI ROUTE (FIXED + SAFE)
+// ✅ AI ROUTE
 export const getAIRoute = async () => {
-  try {
-    const res = await fetch(`${BASE}/ai_route`) // ✅ correct
-
-    if (!res.ok) {
-      console.error("404 or server error")
-      return []
-    }
-
-    const data = await res.json()
-    return Array.isArray(data) ? data : []
-
-  } catch (e) {
-    console.error("AI Route error:", e)
-    return []
-  }
+  const data = await safeFetch(`${BASE}/ai_route`)
+  return Array.isArray(data) ? data : []
 }

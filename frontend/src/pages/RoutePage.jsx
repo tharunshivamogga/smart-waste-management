@@ -66,7 +66,7 @@ export default function RoutePage() {
     return `${(d * 111).toFixed(2)} km`
   }
 
-  // ✅ NEAREST NEIGHBOR
+  // ✅ NEAREST NEIGHBOR (UNCHANGED)
   function optimizeRoute(binList) {
     let remaining = [...binList]
     let current = dumpYard
@@ -107,26 +107,43 @@ export default function RoutePage() {
     }, 40)
   }
 
+  // 🔥 NEW 4-DAY + PRIORITY LOGIC (ONLY CHANGE)
   function startCollection() {
 
-    // ✅ STEP 1: FILTER ≥ 50
-    let filtered = validBins.filter(
-      b => Number(b.Waste_Level) >= 50
+    const today = new Date()
+
+    function daysDiff(dateStr) {
+      if (!dateStr) return 999 // if missing → treat as very old
+      const past = new Date(dateStr)
+      return Math.floor((today - past) / (1000 * 60 * 60 * 24))
+    }
+
+    // ✅ SELECT BINS:
+    let filtered = validBins.filter(b =>
+      Number(b.Waste_Level) >= 50 ||
+      daysDiff(b.Last_Collected) >= 4
     )
 
     if (filtered.length === 0) {
-      alert("No bins above 50%")
+      alert("No bins to collect")
       return
     }
 
-    // ✅ STEP 2: PRIORITY (HIGH → LOW)
-    filtered.sort((a, b) => b.Waste_Level - a.Waste_Level)
+    // ✅ PRIORITY SCORE (SMART)
+    filtered.sort((a, b) => {
+      const scoreA =
+        Number(a.Waste_Level) + daysDiff(a.Last_Collected) * 10
+      const scoreB =
+        Number(b.Waste_Level) + daysDiff(b.Last_Collected) * 10
 
-    // ✅ STEP 3: LIMIT 7
-    const priorityBins = filtered.slice(0, 7)
+      return scoreB - scoreA
+    })
 
-    // ✅ STEP 4: OPTIMIZE ROUTE (NN)
-    const ordered = optimizeRoute(priorityBins)
+    // ✅ LIMIT 7
+    const selectedBins = filtered.slice(0, 7)
+
+    // ✅ OPTIMIZED ROUTE
+    const ordered = optimizeRoute(selectedBins)
 
     setSelected(ordered)
 
@@ -151,9 +168,11 @@ export default function RoutePage() {
               : null
 
           if (bin && bin.Bin_ID) {
+
             updateBin({
               Bin_ID: String(bin.Bin_ID),
-              Waste_Level: 0
+              Waste_Level: 0,
+              Last_Collected: new Date().toISOString().split("T")[0] // ✅ UPDATE DATE
             })
 
             setVisited(prev => [

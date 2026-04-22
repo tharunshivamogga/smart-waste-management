@@ -21,10 +21,14 @@ DATA = os.path.join(BASE_DIR, "dataset", "bins.csv")
 
 print("DATA PATH:", DATA)
 
-# ✅ LOAD FUNCTION (WITH AUTO SIMULATION)
+# ✅ LOAD FUNCTION
 def load():
     try:
         df = pd.read_csv(DATA)
+
+        # 🔥 ENSURE COLUMN EXISTS
+        if "Last_Collected" not in df.columns:
+            df["Last_Collected"] = ""
 
         # 🔥 AUTO GENERATE DATA IF MOSTLY ZERO
         if "Waste_Level" in df.columns:
@@ -35,10 +39,8 @@ def load():
 
                 np.random.seed(42)
 
-                # Generate realistic distribution
                 df["Waste_Level"] = np.random.randint(20, 100, size=len(df))
 
-                # Add some low bins
                 low_indices = np.random.choice(df.index, size=int(len(df)*0.2), replace=False)
                 df.loc[low_indices, "Waste_Level"] = np.random.randint(0, 40, size=len(low_indices))
 
@@ -47,7 +49,7 @@ def load():
     except Exception as e:
         print("ERROR LOADING DATA:", e)
         return pd.DataFrame([
-            {"Bin_ID": "B1", "Area": "Test", "Latitude": 12.97, "Longitude": 77.59, "Waste_Level": 50}
+            {"Bin_ID": "B1", "Area": "Test", "Latitude": 12.97, "Longitude": 77.59, "Waste_Level": 50, "Last_Collected": ""}
         ])
 
 # ✅ SAVE FUNCTION
@@ -81,7 +83,7 @@ def stats():
         "avg_waste": float(df["Waste_Level"].mean())
     })
 
-# ✅ PREDICTION API (REALISTIC)
+# ✅ PREDICTION API
 @app.route("/prediction")
 def prediction_api():
     df = load()
@@ -100,13 +102,10 @@ def prediction_api():
     result = []
     ai_errors = []
 
-    import random  # ✅ correct place
-
     for i, row in df.iterrows():
 
         actual = float(row["Waste_Level"])
 
-        # ✅ AI LOGIC (INSIDE LOOP)
         if actual > 80:
             ai = actual + random.randint(2, 8)
         elif actual > 50:
@@ -114,10 +113,7 @@ def prediction_api():
         else:
             ai = actual + random.randint(10, 20)
 
-        # variation
         ai += random.uniform(-5, 5)
-
-        # clamp
         ai = max(0, min(100, ai))
 
         error = actual - ai
@@ -135,7 +131,6 @@ def prediction_api():
             "ml_predicted": ml
         })
 
-       # ✅ METRICS
     ai_errors = np.array(ai_errors)
 
     ai_mae = np.mean(np.abs(ai_errors))
@@ -149,19 +144,18 @@ def prediction_api():
         "ai_rmse": float(ai_rmse),
         "ml_rmse": float(ml_rmse)
     })
-    
+
 # ✅ ANALYSIS API
 @app.route("/analysis")
 def analysis():
     df = load()
     return jsonify(analyze_bins(df))
 
-# ✅ ROUTE API (Nearest Neighbor)
+# ✅ ROUTE API
 @app.route("/route")
 def route():
     df = load()
 
-    # 🔥 ONLY TAKE BINS > 50
     df = df[df["Waste_Level"] >= 50]
 
     if df.empty:
@@ -186,7 +180,29 @@ def route():
 
     return jsonify(result)
 
-# ✅ UPDATE BIN API (SAFE LIMIT)
+# ✅ BULK COLLECTION
+@app.route("/collect_bins", methods=["POST"])
+def collect_bins():
+    data = request.json
+
+    df = load()
+
+    if df.empty:
+        return jsonify({"error": "No data"}), 400
+
+    df["Bin_ID"] = df["Bin_ID"].astype(str)
+
+    today = pd.Timestamp.now().strftime("%Y-%m-%d")
+
+    for bid in data.get("bins", []):
+        df.loc[df["Bin_ID"] == str(bid), "Waste_Level"] = 0
+        df.loc[df["Bin_ID"] == str(bid), "Last_Collected"] = today
+
+    save(df)
+
+    return jsonify({"message": "Bins collected"})
+
+# ✅ UPDATE BIN (🔥 FINAL FIX)
 @app.route("/update_bin", methods=["POST"])
 def update_bin():
     data = request.json
@@ -198,31 +214,31 @@ def update_bin():
 
     df["Bin_ID"] = df["Bin_ID"].astype(str)
 
-    try:
-        waste = int(data["Waste_Level"])
-    except:
-        return jsonify({"error": "Invalid value"}), 400
-
-    # 🔥 LIMIT 0–100
-    if waste < 0:
-        waste = 0
-    if waste > 100:
-        waste = 100
+    waste = int(data.get("Waste_Level", 0))
+    waste = max(0, min(100, waste))
 
     df.loc[df["Bin_ID"] == str(data["Bin_ID"]), "Waste_Level"] = waste
 
+    # 🔥 ALWAYS UPDATE DATE (FIXED)
+    if "Last_Collected" in data and data["Last_Collected"]:
+        df.loc[df["Bin_ID"] == str(data["Bin_ID"]), "Last_Collected"] = str(data["Last_Collected"])
+    else:
+        df.loc[df["Bin_ID"] == str(data["Bin_ID"]), "Last_Collected"] = pd.Timestamp.now().strftime("%Y-%m-%d")
+
     save(df)
 
-    return jsonify({"message": "Updated", "value": waste})
+    return jsonify({
+        "message": "Updated",
+        "waste": waste,
+        "date": data.get("Last_Collected")
+    })
 
 # ✅ AI ROUTE
 @app.route("/ai_route")
 def ai_route():
     bins = load().to_dict(orient="records")
 
-    # 🔥 FILTER >50
     bins = [b for b in bins if b["Waste_Level"] >= 50]
-
     bins = sorted(bins, key=lambda x: x["Waste_Level"], reverse=True)[:7]
 
     return jsonify(bins)

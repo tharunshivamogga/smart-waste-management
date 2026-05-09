@@ -25,7 +25,13 @@ export const getBins = async () => {
   const data = await safeFetch(`${BASE}/bins`)
   return { data: Array.isArray(data) ? data : [] }
 }
-
+export const collectBins = async (bins) => {
+  await fetch(`${BASE}/collect_bins`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bins })
+  })
+}
 // ✅ UPDATE BIN
 export const updateBin = async (data) => {
   await safeFetch(`${BASE}/update_bin`, {

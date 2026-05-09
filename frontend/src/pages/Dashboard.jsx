@@ -10,10 +10,12 @@ export default function Dashboard() {
 
   const [bins, setBins] = useState([])
   const [pred, setPred] = useState([])
+
   const [aiAcc, setAiAcc] = useState(0)
   const [mlAcc, setMlAcc] = useState(0)
   const [aiRmse, setAiRmse] = useState(0)
-const [mlRmse, setMlRmse] = useState(0)
+  const [mlRmse, setMlRmse] = useState(0)
+
   useEffect(() => {
     load()
   }, [])
@@ -23,23 +25,24 @@ const [mlRmse, setMlRmse] = useState(0)
       const b = await getBins()
       const p = await getPrediction()
 
-      setBins(b.data || [])
-      setPred(p.data || [])
+      setBins(Array.isArray(b.data) ? b.data : [])
+      setPred(Array.isArray(p.data) ? p.data : [])
 
-      setAiAcc(p.ai_accuracy)
-      setMlAcc(p.ml_accuracy)
-      setAiRmse(p.ai_rmse)
-      setMlRmse(p.ml_rmse)
+      setAiAcc(Number(p.ai_accuracy || 0))
+      setMlAcc(Number(p.ml_accuracy || 0))
+      setAiRmse(Number(p.ai_rmse || 0))
+      setMlRmse(Number(p.ml_rmse || 0))
+
     } catch (e) {
       console.error(e)
     }
   }
 
-  // ✅ SAFE DATA
-  const safePred = (pred || []).map((p, i) => {
-    const actual = Number(p.actual) || 0
-    const ai = Number(p.ai_predicted) || 0
-    const ml = Number(p.ml_predicted) || 0
+  // ✅ SAFE PRED DATA
+  const safePred = pred.map((p, i) => {
+    const actual = Number(p.actual || 0)
+    const ai = Number(p.ai_predicted || 0)
+    const ml = Number(p.ml_predicted || 0)
 
     return {
       Area: p.Area || `Area-${i}`,
@@ -51,13 +54,32 @@ const [mlRmse, setMlRmse] = useState(0)
     }
   })
 
-  // ✅ KPI CALCULATIONS
+  // ✅ KPI
   const totalBins = bins.length
+
   const overflow = bins.filter(b => b.Waste_Level > 80).length
+
   const avgWaste = bins.length
     ? (bins.reduce((a, b) => a + b.Waste_Level, 0) / bins.length).toFixed(1)
     : 0
 
+// 🔥 OVERDUE LOGIC (FIXED - DO NOT BREAK ANYTHING)
+const overdue = bins.filter(b => {
+
+  // ❌ ignore empty bins
+  if (Number(b.Waste_Level) === 0) return false
+
+  // ❌ ignore if no date
+  if (!b.Last_Collected) return false
+
+  const days = Math.floor(
+    (new Date() - new Date(b.Last_Collected)) / (1000*60*60*24)
+  )
+
+  return days >= 4
+
+}).length
+  // ✅ FALLBACK ACCURACY (if backend fails)
   const aiAccuracy = safePred.length
     ? (100 - (safePred.reduce((a, b) => a + b.ai_error, 0) / safePred.length)).toFixed(1)
     : 0
@@ -77,12 +99,10 @@ const [mlRmse, setMlRmse] = useState(0)
     { name: "High", value: high }
   ]
 
-  const COLORS = ["#22c55e", "#facc15", "#ef4444"]
-
   return (
     <div className="page">
 
-      {/* 🚀 HEADER */}
+      {/* HEADER */}
       <div className="card">
         <h1>🚀 Smart Waste Control Center</h1>
         <p style={{ color: "#94a3b8" }}>
@@ -90,8 +110,9 @@ const [mlRmse, setMlRmse] = useState(0)
         </p>
       </div>
 
-      {/* 📊 KPI CARDS */}
+      {/* KPI CARDS */}
       <div className="cards">
+
         <div className="card">
           <h3>Total Bins</h3>
           <h2>{totalBins}</h2>
@@ -108,17 +129,23 @@ const [mlRmse, setMlRmse] = useState(0)
         </div>
 
         <div className="card">
-         <h3>AI Accuracy</h3>
-         <h2>{aiAcc.toFixed(2)}%</h2>
+          <h3>⏰ Overdue</h3>
+          <h2 style={{ color: "#f43f5e" }}>{overdue}</h2>
+        </div>
+
+        <div className="card">
+          <h3>AI Accuracy</h3>
+          <h2>{aiAcc ? aiAcc.toFixed(2) : aiAccuracy}%</h2>
         </div>
 
         <div className="card">
           <h3>ML Accuracy</h3>
-          <h2>{mlAcc.toFixed(2)}%</h2>
+          <h2>{mlAcc ? mlAcc.toFixed(2) : mlAccuracy}%</h2>
         </div>
+
       </div>
 
-      {/* 🚨 ALERTS */}
+      {/* ALERTS */}
       <div className="card">
         <h3>🚨 Overflow Alerts</h3>
 
@@ -130,51 +157,36 @@ const [mlRmse, setMlRmse] = useState(0)
           </div>
         ))}
       </div>
-    <div className="card">
-  <h3>📉 RMSE Comparison</h3>
 
-  <ResponsiveContainer width="100%" height={300}>
-    <BarChart
-      data={[
-        { name: "AI", value: aiRmse },
-        { name: "ML", value: mlRmse }
-      ]}
-    >
-      <defs>
-        <linearGradient id="aiColor" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#facc15"/>
-          <stop offset="100%" stopColor="#f59e0b"/>
-        </linearGradient>
+      {/* RMSE */}
+      <div className="card">
+        <h3>📉 RMSE Comparison</h3>
 
-        <linearGradient id="mlColor" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#38bdf8"/>
-          <stop offset="100%" stopColor="#0ea5e9"/>
-        </linearGradient>
-      </defs>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart
+            data={[
+              { name: "AI", value: aiRmse },
+              { name: "ML", value: mlRmse }
+            ]}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
 
-      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-      <XAxis dataKey="name" stroke="#44474b" />
-      <YAxis stroke="#454c55" />
+            <Tooltip />
 
-      <Tooltip
-        contentStyle={{
-          backgroundColor: "#3a4e7c",
-          border: "1px solid #38bdf8",
-          borderRadius: "10px",
-          color: "#fff"
-        }}
-      />
+            <Bar dataKey="value" radius={[10, 10, 0, 0]}>
+              <Cell fill="#facc15" />
+              <Cell fill="#38bdf8" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
-      <Bar dataKey="value" radius={[10, 10, 0, 0]}>
-        <Cell fill="url(#aiColor)" />
-        <Cell fill="url(#mlColor)" />
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-</div>
-      {/* 📈 AI CHART */}
+      {/* AI CHART */}
       <div className="card">
         <h3>📈 AI vs Actual</h3>
+
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={safePred}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -182,15 +194,17 @@ const [mlRmse, setMlRmse] = useState(0)
             <YAxis domain={[0, 100]} />
             <Tooltip />
             <Legend />
+
             <Line dataKey="actual" stroke="#38bdf8" strokeWidth={3} />
             <Line dataKey="ai" stroke="#facc15" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* 📊 ML CHART */}
+      {/* ML CHART */}
       <div className="card">
         <h3>📊 ML vs Actual</h3>
+
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={safePred}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -198,15 +212,17 @@ const [mlRmse, setMlRmse] = useState(0)
             <YAxis domain={[0, 100]} />
             <Tooltip />
             <Legend />
+
             <Line dataKey="actual" stroke="#38bdf8" strokeWidth={3} />
             <Line dataKey="ml" stroke="#ef4444" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* 📉 ERROR GRAPH */}
+      {/* ERROR GRAPH */}
       <div className="card">
         <h3>📉 Error Comparison</h3>
+
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={safePred}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -214,72 +230,44 @@ const [mlRmse, setMlRmse] = useState(0)
             <YAxis />
             <Tooltip />
             <Legend />
+
             <Bar dataKey="ai_error" fill="#facc15" />
             <Bar dataKey="ml_error" fill="#ef4444" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* 🧩 PIE */}
+      {/* PIE CHART */}
       <div className="card">
-  <h3>🧩 Waste Distribution</h3>
+        <h3>🧩 Waste Distribution</h3>
 
-  <ResponsiveContainer width="100%" height={320}>
-    <PieChart>
+        <ResponsiveContainer width="100%" height={320}>
+          <PieChart>
 
-      {/* 🔥 GRADIENT COLORS */}
-      <defs>
-        <linearGradient id="lowColor" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#22c55e"/>
-          <stop offset="100%" stopColor="#4ade80"/>
-        </linearGradient>
+            <Pie
+              data={pieData}
+              dataKey="value"
+              nameKey="name"
+              outerRadius={110}
+              innerRadius={50}
+              paddingAngle={5}
+              animationDuration={1000}
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
+            >
+              <Cell fill="#22c55e" />
+              <Cell fill="#facc15" />
+              <Cell fill="#ef4444" />
+            </Pie>
 
-        <linearGradient id="mediumColor" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#facc15"/>
-          <stop offset="100%" stopColor="#f59e0b"/>
-        </linearGradient>
+            <Tooltip />
+            <Legend />
 
-        <linearGradient id="highColor" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ef4444"/>
-          <stop offset="100%" stopColor="#dc2626"/>
-        </linearGradient>
-      </defs>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
 
-      {/* 🔥 PIE */}
-      <Pie
-        data={pieData}
-        dataKey="value"
-        nameKey="name"
-        cx="50%"
-        cy="50%"
-        outerRadius={110}
-        innerRadius={50}   // 🔥 donut style
-        paddingAngle={5}
-        animationDuration={1000}
-        label={({ name, percent }) =>
-          `${name} ${(percent * 100).toFixed(0)}%`
-        }
-      >
-        <Cell fill="url(#lowColor)" />
-        <Cell fill="url(#mediumColor)" />
-        <Cell fill="url(#highColor)" />
-      </Pie>
-
-      {/* 🔥 TOOLTIP */}
-      <Tooltip
-        contentStyle={{
-          backgroundColor: "#0f172a",
-          border: "1px solid #38bdf8",
-          borderRadius: "10px",
-          color: "#fff"
-        }}
-      />
-
-      <Legend />
-
-    </PieChart>
-  </ResponsiveContainer>
-</div>
     </div>
   )
 }

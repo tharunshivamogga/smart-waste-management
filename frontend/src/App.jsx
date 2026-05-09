@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 import Dashboard from "./pages/Dashboard"
 import MapPage from "./pages/MapPage"
@@ -9,14 +9,9 @@ import Layout from "./components/Layout"
 
 export default function App() {
 
+  // ✅ LOAD FROM LOCAL STORAGE (IMPORTANT)
   const [role, setRole] = useState(null)
   const [auth, setAuth] = useState(false)
-
-  // 🔥 FORCE LOGIN EVERY TIME (IMPORTANT)
-  useEffect(() => {
-    localStorage.removeItem("auth")
-    localStorage.removeItem("role")
-  }, [])
 
   return (
     <BrowserRouter>
@@ -35,8 +30,13 @@ export default function App() {
             </>
           )}
 
-          {/* DRIVER */}
+          {/* DRIVER 1 */}
           {role === "driver" && (
+            <Route path="/route" element={<Layout role={role}><RoutePage /></Layout>} />
+          )}
+
+          {/* DRIVER 2 */}
+          {role === "driver2" && (
             <Route path="/route" element={<Layout role={role}><RoutePage /></Layout>} />
           )}
 

@@ -28,56 +28,45 @@ const binIcon = new L.Icon({
 export default function RoutePage() {
 
   const [bins, setBins] = useState([])
-  const [truckPos, setTruckPos] = useState(null)
-  const [pathLine, setPathLine] = useState([])
-  const [visited, setVisited] = useState([])
-  const [selected, setSelected] = useState([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [distanceText, setDistanceText] = useState("")
 
+  const [truck1Pos, setTruck1Pos] = useState(null)
+  const [path1, setPath1] = useState([])
+
+  const [truck2Pos, setTruck2Pos] = useState(null)
+  const [path2, setPath2] = useState([])
+
+  const [visited, setVisited] = useState([])
+  const [selectedBin, setSelectedBin] = useState(null)
+
+  const role = localStorage.getItem("role")
   const dumpYard = [12.9716, 77.5946]
 
   useEffect(() => {
-    getBins().then(res => setBins(res.data || []))
+    load()
   }, [])
 
+  function load() {
+    getBins().then(res => setBins(res.data || []))
+  }
+
   const validBins = bins.filter(
-    b =>
-      b &&
-      !isNaN(Number(b.Latitude)) &&
-      !isNaN(Number(b.Longitude))
+    b => b && !isNaN(Number(b.Latitude)) && !isNaN(Number(b.Longitude))
   )
 
   function distance(a, b) {
-    const dx = a[0] - b[0]
-    const dy = a[1] - b[1]
-    return Math.sqrt(dx * dx + dy * dy)
+    return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
   }
 
-  function totalDistance(path) {
-    let d = 0
-    for (let i = 0; i < path.length - 1; i++) {
-      d += distance(path[i], path[i + 1])
-    }
-    return d
-  }
-
-  function formatDistance(d) {
-    return `${(d * 111).toFixed(2)} km`
-  }
-
-  // ✅ NEAREST NEIGHBOR (UNCHANGED)
   function optimizeRoute(binList) {
     let remaining = [...binList]
     let current = dumpYard
     let ordered = []
 
     while (remaining.length) {
-      let nearest = remaining.reduce((prev, curr) => {
-        return distance(current, [curr.Latitude, curr.Longitude]) <
-          distance(current, [prev.Latitude, prev.Longitude])
-          ? curr : prev
-      })
+      let nearest = remaining.reduce((prev, curr) =>
+        distance(current, [curr.Latitude, curr.Longitude]) <
+        distance(current, [prev.Latitude, prev.Longitude]) ? curr : prev
+      )
 
       ordered.push(nearest)
       current = [nearest.Latitude, nearest.Longitude]
@@ -87,65 +76,63 @@ export default function RoutePage() {
     return ordered
   }
 
-  function animateMove(start, end, callback) {
-    let step = 0
-    const steps = 40
+  function animateMove(start, end, setTruck, setPath) {
+    return new Promise(resolve => {
+      let step = 0
+      const steps = 40
 
-    const interval = setInterval(() => {
-      step++
+      const interval = setInterval(() => {
+        step++
 
-      const lat = start[0] + (end[0] - start[0]) * (step / steps)
-      const lng = start[1] + (end[1] - start[1]) * (step / steps)
+        const lat = start[0] + (end[0]-start[0])*(step/steps)
+        const lng = start[1] + (end[1]-start[1])*(step/steps)
 
-      setTruckPos([lat, lng])
-      setPathLine(prev => [...prev, [lat, lng]])
+        setTruck([lat, lng])
+        setPath(prev => [...prev, [lat, lng]])
 
-      if (step >= steps) {
-        clearInterval(interval)
-        callback()
-      }
-    }, 40)
+        if (step >= steps) {
+          clearInterval(interval)
+          resolve()
+        }
+      }, 40)
+    })
   }
 
-  // 🔥 NEW 4-DAY + PRIORITY LOGIC (ONLY CHANGE)
-  function startCollection() {
+  function startCollection(type = "overflow") {
 
+    // ✅ FIXED DATE (CRITICAL)
     const today = new Date()
+    const todayStr = today.toISOString().split("T")[0]
 
     function daysDiff(dateStr) {
-      if (!dateStr) return 999 // if missing → treat as very old
+      if (!dateStr) return 999
       const past = new Date(dateStr)
-      return Math.floor((today - past) / (1000 * 60 * 60 * 24))
+      return Math.floor(
+        (today.getTime() - past.getTime()) / (1000 * 60 * 60 * 24)
+      )
     }
 
-    // ✅ SELECT BINS:
-    let filtered = validBins.filter(b =>
-      Number(b.Waste_Level) >= 50 ||
-      daysDiff(b.Last_Collected) >= 4
-    )
+    let filtered = []
+
+    // ✅ OVERFLOW LOGIC
+    if (type === "overflow") {
+      filtered = validBins.filter(b => Number(b.Waste_Level) >= 50)
+    }
+
+    // ✅ OVERDUE LOGIC (FIXED)
+    if (type === "overdue") {
+      filtered = validBins.filter(b =>
+        Number(b.Waste_Level) > 0 &&
+        daysDiff(b.Last_Collected) >= 4
+      )
+    }
 
     if (filtered.length === 0) {
       alert("No bins to collect")
       return
     }
 
-    // ✅ PRIORITY SCORE (SMART)
-    filtered.sort((a, b) => {
-      const scoreA =
-        Number(a.Waste_Level) + daysDiff(a.Last_Collected) * 10
-      const scoreB =
-        Number(b.Waste_Level) + daysDiff(b.Last_Collected) * 10
-
-      return scoreB - scoreA
-    })
-
-    // ✅ LIMIT 7
-    const selectedBins = filtered.slice(0, 7)
-
-    // ✅ OPTIMIZED ROUTE
-    const ordered = optimizeRoute(selectedBins)
-
-    setSelected(ordered)
+    const ordered = optimizeRoute(filtered.slice(0, 7))
 
     const path = [
       dumpYard,
@@ -153,47 +140,43 @@ export default function RoutePage() {
       dumpYard
     ]
 
-    setDistanceText(formatDistance(totalDistance(path)))
+    async function move() {
 
-    let i = 0
+      for (let i = 0; i < path.length - 1; i++) {
 
-    function move() {
-      if (i < path.length - 1) {
+        if (type === "overflow") {
+          await animateMove(path[i], path[i + 1], setTruck1Pos, setPath1)
+        } else {
+          await animateMove(path[i], path[i + 1], setTruck2Pos, setPath2)
+        }
 
-        animateMove(path[i], path[i + 1], () => {
+        const bin =
+          i > 0 && i - 1 < ordered.length
+            ? ordered[i - 1]
+            : null
 
-          const bin =
-            i > 0 && i - 1 < ordered.length
-              ? ordered[i - 1]
-              : null
+        if (bin && bin.Bin_ID) {
 
-          if (bin && bin.Bin_ID) {
+          // ✅ FINAL FIX → THIS WAS YOUR BUG
+          await updateBin({
+            Bin_ID: String(bin.Bin_ID),
+            Waste_Level: 0,
+            Last_Collected: todayStr   // ✅ FIXED
+          })
 
-            updateBin({
-              Bin_ID: String(bin.Bin_ID),
-              Waste_Level: 0,
-              Last_Collected: new Date().toISOString().split("T")[0] // ✅ UPDATE DATE
-            })
-
-            setVisited(prev => [
-              ...prev,
-              {
-                Area: String(bin.Area || "Unknown")
-              }
-            ])
-          }
-
-          i++
-          setCurrentIndex(i)
-          move()
-        })
+          setVisited(prev => [
+            ...prev,
+            {
+              Area: String(bin.Area || "Unknown"),
+              Bin_ID: bin.Bin_ID,
+              type: type
+            }
+          ])
+        }
       }
-    }
 
-    setTruckPos(dumpYard)
-    setVisited([])
-    setPathLine([])
-    setCurrentIndex(0)
+      load() // refresh
+    }
 
     move()
   }
@@ -203,13 +186,44 @@ export default function RoutePage() {
 
       <h1>🚛 Smart Route Dashboard</h1>
 
-      <button onClick={startCollection}>
-        Start Collection
-      </button>
+      <h3>
+        {role === "admin" && "👨‍💼 Admin"}
+        {role === "driver" && "🚛 Driver 1 (Overflow)"}
+        {role === "driver2" && "🚛 Driver 2 (Overdue)"}
+      </h3>
 
-      <div className="card">
-        <h3>Distance: {distanceText}</h3>
-      </div>
+      {/* ADMIN */}
+      {role === "admin" && (
+        <>
+          <button onClick={() => startCollection("overflow")}>
+            🚛 Overflow
+          </button>
+
+          <button
+            onClick={() => startCollection("overdue")}
+            style={{ marginLeft: 10, background: "purple", color: "white" }}
+          >
+            🚛 Overdue
+          </button>
+        </>
+      )}
+
+      {/* DRIVER 1 */}
+      {role === "driver" && (
+        <button onClick={() => startCollection("overflow")}>
+          🚛 Overflow
+        </button>
+      )}
+
+      {/* DRIVER 2 */}
+      {role === "driver2" && (
+        <button
+          onClick={() => startCollection("overdue")}
+          style={{ background: "purple", color: "white" }}
+        >
+          🚛 Overdue
+        </button>
+      )}
 
       <div className="cards">
 
@@ -219,8 +233,17 @@ export default function RoutePage() {
           {visited.length === 0 && <p>No bins collected</p>}
 
           {visited.map((b, i) => (
-            <div key={i} className="alert">
-              {b.Area} ✔
+            <div
+              key={i}
+              style={{
+                background: b.type === "overflow" ? "#1d4ed8" : "#7c3aed",
+                color: "white",
+                padding: "6px",
+                borderRadius: "6px",
+                marginBottom: "5px"
+              }}
+            >
+              {b.Area} ({b.Bin_ID}) ✔
             </div>
           ))}
         </div>
@@ -241,44 +264,38 @@ export default function RoutePage() {
 
               if (!b || !b.Bin_ID) return null
 
-              const nextBin =
-                currentIndex > 0 && currentIndex <= selected.length
-                  ? selected[currentIndex - 1]
-                  : null
-
-              const isNext =
-                nextBin &&
-                nextBin.Bin_ID &&
-                String(b.Bin_ID) === String(nextBin.Bin_ID)
+              const isSelected = selectedBin === b.Bin_ID
 
               return (
-                <Marker
-                  key={b.Bin_ID || idx}
-                  position={[
-                    Number(b.Latitude),
-                    Number(b.Longitude)
-                  ]}
-                  icon={binIcon}
-                >
-                  {isNext && (
+                <>
+                  <Marker
+                    key={b.Bin_ID || idx}
+                    position={[Number(b.Latitude), Number(b.Longitude)]}
+                    icon={binIcon}
+                    eventHandlers={{
+                      click: () => setSelectedBin(b.Bin_ID)
+                    }}
+                  />
+
+                  {isSelected && (
                     <CircleMarker
-                      center={[
-                        Number(b.Latitude),
-                        Number(b.Longitude)
-                      ]}
-                      radius={20}
-                      pathOptions={{ color: "red" }}
+                      center={[Number(b.Latitude), Number(b.Longitude)]}
+                      radius={25}
+                      pathOptions={{
+                        color: "cyan",
+                        weight: 3
+                      }}
                     />
                   )}
-                </Marker>
+                </>
               )
             })}
 
-            <Polyline positions={pathLine} color="blue" />
+            <Polyline positions={path1} color="blue" />
+            <Polyline positions={path2} color="purple" />
 
-            {truckPos && (
-              <Marker position={truckPos} icon={truckIcon} />
-            )}
+            {truck1Pos && <Marker position={truck1Pos} icon={truckIcon} />}
+            {truck2Pos && <Marker position={truck2Pos} icon={truckIcon} />}
 
           </MapContainer>
 
